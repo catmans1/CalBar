@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>macOS Calendar Menu Bar Preview</title>
+  <style>
+    :root {
+      --bg-color: rgba(30, 30, 30, 0.85);
+      --card-bg: rgba(255, 255, 255, 0.08);
+      --card-hover: rgba(255, 255, 255, 0.12);
+      --text-main: #f5f5f7;
+      --text-sub: #a1a1a6;
+      --accent-color: #0a84ff;
+      --accent-green: #30d158;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+      user-select: none;
+    }
+
+    body {
+      background-color: #121212;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .popover-container {
+      width: 340px;
+      height: 420px;
+      background: var(--bg-color);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      padding: 14px;
+      color: var(--text-main);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .header-title { font-size: 14px; font-weight: 600; }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-sub);
+    }
+
+    .avatar {
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: var(--accent-color);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: bold; font-size: 10px; color: #fff;
+    }
+
+    .content-area { flex: 1; overflow-y: auto; margin-top: 10px; padding-right: 2px; }
+
+    .next-meeting {
+      background: linear-gradient(135deg, rgba(10, 132, 255, 0.2), rgba(48, 209, 88, 0.15));
+      border: 1px solid rgba(10, 132, 255, 0.4);
+      border-radius: 8px; padding: 10px 12px; margin-bottom: 12px;
+    }
+
+    .badge {
+      display: inline-block; font-size: 10px; text-transform: uppercase;
+      font-weight: 700; color: var(--accent-green); letter-spacing: 0.5px; margin-bottom: 4px;
+    }
+
+    .meeting-title { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+
+    .meeting-time {
+      font-size: 11px; color: var(--text-sub);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+
+    .section-label {
+      font-size: 11px; font-weight: 600; color: var(--text-sub);
+      margin-bottom: 8px; text-transform: uppercase;
+    }
+
+    .event-list { display: flex; flex-direction: column; gap: 6px; }
+
+    .event-card {
+      background: var(--card-bg); border-radius: 6px; padding: 8px 10px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+
+    .event-card:hover { background: var(--card-hover); }
+
+    .event-info { display: flex; flex-direction: column; gap: 2px; }
+    .event-name { font-size: 12px; font-weight: 500; }
+    .event-sub { font-size: 10px; color: var(--text-sub); }
+
+    .btn-join {
+      background: var(--accent-color); color: #fff; border: none;
+      padding: 4px 10px; border-radius: 4px; font-size: 11px;
+      font-weight: 500; cursor: pointer; text-decoration: none;
+    }
+
+    .btn-join:hover { opacity: 0.9; }
+
+    .footer {
+      display: flex; justify-content: space-between; align-items: center;
+      padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.1); font-size: 11px;
+    }
+
+    .settings-group { display: flex; align-items: center; gap: 6px; color: var(--text-sub); }
+
+    select {
+      background: rgba(255, 255, 255, 0.1); color: var(--text-main);
+      border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 4px;
+      padding: 2px 4px; font-size: 10px; outline: none;
+    }
+
+    .btn-icon {
+      background: none; border: none; color: var(--text-sub);
+      cursor: pointer; font-size: 12px; margin-left: 6px;
+    }
+
+    .btn-icon:hover { color: var(--text-main); }
+  </style>
+</head>
+<body>
+  <div class="popover-container">
+    <div class="header">
+      <div class="header-title">Google Calendar</div>
+      <div class="user-profile">
+        <div class="avatar">H</div>
+        <span>Hung Le</span>
+      </div>
+    </div>
+
+    <div class="content-area">
+      <div class="next-meeting">
+        <span class="badge">● Sắp diễn ra trong 5 phút</span>
+        <div class="meeting-title">Daily Sync Team Frontend</div>
+        <div class="meeting-time">
+          <span>18:30 - 19:00</span>
+          <a href="https://meet.google.com" target="_blank" class="btn-join">Vào Meet</a>
+        </div>
+      </div>
+
+      <div class="section-label">Lịch hôm nay</div>
+      <div class="event-list">
+        <div class="event-card">
+          <div class="event-info">
+            <div class="event-name">Sprint Planning</div>
+            <div class="event-sub">20:00 - 21:00 • Google Meet</div>
+          </div>
+          <a href="https://meet.google.com" target="_blank" class="btn-join">Join</a>
+        </div>
+        <div class="event-card">
+          <div class="event-info">
+            <div class="event-name">1-on-1 với Engineering Lead</div>
+            <div class="event-sub">21:30 - 22:00</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="settings-group">
+        <label for="notify-time">Báo trước:</label>
+        <select id="notify-time">
+          <option value="5" selected>5 phút</option>
+          <option value="10">10 phút</option>
+          <option value="15">15 phút</option>
+        </select>
+      </div>
+      <div>
+        <button class="btn-icon" title="Làm mới">🔄 Sync</button>
+        <button class="btn-icon" title="Cài đặt">⚙️</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

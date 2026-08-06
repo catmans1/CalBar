@@ -27,6 +27,10 @@
 		0A9FC2AE302472D6005AB333 /* CalBar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CalBar.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0A9FC2BB302472D8005AB333 /* CalBarTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CalBarTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0A9FC2C5302472D8005AB333 /* CalBarUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CalBarUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		0A9FC30F30248345005AB333 /* PROJECT_BRIEF.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PROJECT_BRIEF.md; sourceTree = "<group>"; };
+		0A9FC31030248359005AB333 /* TECH_SPEC.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = TECH_SPEC.md; sourceTree = "<group>"; };
+		0A9FC31130248367005AB333 /* CODING_RULES.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CODING_RULES.md; sourceTree = "<group>"; };
+		0A9FC31230248371005AB333 /* SETUP_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = SETUP_GUIDE.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -79,6 +83,7 @@
 				0A9FC2BE302472D8005AB333 /* CalBarTests */,
 				0A9FC2C8302472D8005AB333 /* CalBarUITests */,
 				0A9FC2AF302472D6005AB333 /* Products */,
+				0A9FC30E30248335005AB333 /* Docs */,
 			);
 			sourceTree = "<group>";
 		};
@@ -90,6 +95,17 @@
 				0A9FC2C5302472D8005AB333 /* CalBarUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		0A9FC30E30248335005AB333 /* Docs */ = {
+			isa = PBXGroup;
+			children = (
+				0A9FC30F30248345005AB333 /* PROJECT_BRIEF.md */,
+				0A9FC31030248359005AB333 /* TECH_SPEC.md */,
+				0A9FC31130248367005AB333 /* CODING_RULES.md */,
+				0A9FC31230248371005AB333 /* SETUP_GUIDE.md */,
+			);
+			path = Docs;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
