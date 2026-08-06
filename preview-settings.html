@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CalBar — Settings Preview</title>
+  <style>
+    :root {
+      --bg: #1c1c1e;
+      --surface: #2c2c2e;
+      --surface2: #3a3a3c;
+      --border: rgba(255,255,255,0.1);
+      --text: #f5f5f7;
+      --text-sub: #98989d;
+      --accent: #0a84ff;
+      --green: #30d158;
+      --red: #ff453a;
+      --yellow: #ffd60a;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #111;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: 40px 20px;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+      gap: 32px;
+      flex-wrap: wrap;
+    }
+
+    /* ── Window Chrome ── */
+    .window {
+      width: 480px;
+      background: var(--bg);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    }
+
+    .titlebar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .dot.close  { background: #ff5f57; }
+    .dot.min    { background: #febc2e; }
+    .dot.zoom   { background: #28c840; }
+
+    .titlebar-title {
+      flex: 1;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      margin-right: 36px;
+    }
+
+    /* ── Sidebar + Content ── */
+    .body {
+      display: flex;
+      height: 520px;
+    }
+
+    .sidebar {
+      width: 160px;
+      border-right: 1px solid var(--border);
+      padding: 10px 0;
+      flex-shrink: 0;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 8px 14px;
+      font-size: 13px;
+      color: var(--text-sub);
+      cursor: pointer;
+      border-radius: 6px;
+      margin: 1px 6px;
+      transition: background 0.15s;
+    }
+
+    .nav-item.active {
+      background: rgba(10,132,255,0.2);
+      color: var(--accent);
+    }
+
+    .nav-item .icon { font-size: 15px; width: 18px; text-align: center; }
+
+    /* ── Content Pane ── */
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 18px 20px;
+    }
+
+    .section {
+      margin-bottom: 24px;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-sub);
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+    }
+
+    .form-group {
+      background: var(--surface);
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    .form-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      min-height: 44px;
+    }
+
+    .form-row:last-child { border-bottom: none; }
+
+    .form-row.stacked {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .label {
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .sublabel {
+      font-size: 11px;
+      color: var(--text-sub);
+      margin-top: 1px;
+    }
+
+    /* Controls */
+    .toggle {
+      width: 36px; height: 20px;
+      background: var(--green);
+      border-radius: 10px;
+      position: relative;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    .toggle.off { background: var(--surface2); }
+
+    .toggle::after {
+      content: '';
+      position: absolute;
+      width: 16px; height: 16px;
+      background: #fff;
+      border-radius: 50%;
+      top: 2px;
+      right: 2px;
+      transition: right 0.2s;
+    }
+
+    .toggle.off::after { right: auto; left: 2px; }
+
+    select {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 12px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type="text"], input[type="password"] {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 12px;
+      outline: none;
+      width: 100%;
+      font-family: "SF Mono", monospace;
+    }
+
+    input[type="text"]:focus, input[type="password"]:focus {
+      border-color: var(--accent);
+    }
+
+    input[type="range"] {
+      accent-color: var(--accent);
+      flex: 1;
+      margin: 0 10px;
+    }
+
+    .range-value {
+      font-size: 12px;
+      color: var(--accent);
+      min-width: 32px;
+      text-align: right;
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+
+    .badge.connected { background: rgba(48,209,88,0.15); color: var(--green); }
+    .badge.disconnected { background: rgba(255,69,58,0.15); color: var(--red); }
+    .badge.warning { background: rgba(255,214,10,0.15); color: var(--yellow); }
+
+    .btn {
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    .btn-danger { background: rgba(255,69,58,0.15); color: var(--red); border: 1px solid rgba(255,69,58,0.3); }
+
+    .avatar-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .avatar {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .avatar-info { flex: 1; }
+    .avatar-name { font-size: 13px; color: var(--text); }
+    .avatar-email { font-size: 11px; color: var(--text-sub); }
+
+    .color-swatch {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.2);
+      display: inline-block;
+      margin-right: 4px;
+    }
+
+    .calendar-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .version-text {
+      font-size: 11px;
+      color: var(--text-sub);
+      text-align: center;
+      padding: 12px 0 4px;
+    }
+
+    /* Page tabs at top of content */
+    .page-header {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 18px;
+    }
+
+    /* ── Legend panel on the right ── */
+    .legend {
+      width: 300px;
+      color: var(--text);
+    }
+
+    .legend h2 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+
+    .legend-section {
+      margin-bottom: 20px;
+    }
+
+    .legend-section h3 {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-sub);
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .legend-item {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 8px;
+      align-items: flex-start;
+    }
+
+    .legend-num {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .legend-text { font-size: 12px; line-height: 1.5; color: var(--text-sub); }
+    .legend-text strong { color: var(--text); }
+  </style>
+</head>
+<body>
+
+  <!-- ── SETTINGS WINDOW ── -->
+  <div class="window">
+    <div class="titlebar">
+      <div class="dot close"></div>
+      <div class="dot min"></div>
+      <div class="dot zoom"></div>
+      <div class="titlebar-title">CalBar — Cài đặt</div>
+    </div>
+
+    <div class="body">
+      <!-- Sidebar Navigation -->
+      <nav class="sidebar">
+        <div class="nav-item active"><span class="icon">🔑</span> Tài khoản</div>
+        <div class="nav-item"><span class="icon">📅</span> Lịch</div>
+        <div class="nav-item"><span class="icon">🔔</span> Thông báo</div>
+        <div class="nav-item"><span class="icon">🎨</span> Giao diện</div>
+        <div class="nav-item"><span class="icon">⚙️</span> Nâng cao</div>
+        <div class="nav-item"><span class="icon">ℹ️</span> Giới thiệu</div>
+      </nav>
+
+      <!-- Content: Tài khoản (Account) -->
+      <div class="content">
+        <div class="page-header">Tài khoản</div>
+
+        <!-- 1. Google Account -->
+        <div class="section">
+          <div class="section-title">Tài khoản Google</div>
+          <div class="form-group">
+            <div class="form-row">
+              <div class="avatar-row">
+                <div class="avatar">H</div>
+                <div class="avatar-info">
+                  <div class="avatar-name">Hung Le</div>
+                  <div class="avatar-email">v.hung@share-wis.com</div>
+                </div>
+              </div>
+              <span class="badge connected">● Đã kết nối</span>
+            </div>
+            <div class="form-row">
+              <div>
+                <div class="label">Đăng xuất</div>
+                <div class="sublabel">Xoá token khỏi Keychain</div>
+              </div>
+              <button class="btn btn-danger">Đăng xuất</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. OAuth Client ID -->
+        <div class="section">
+          <div class="section-title">Cấu hình Google API</div>
+          <div class="form-group">
+            <div class="form-row stacked">
+              <div class="label">OAuth Client ID</div>
+              <input type="text" value="YOUR_CLIENT_ID.apps.googleusercontent.com" placeholder="xxxxxx.apps.googleusercontent.com" />
+            </div>
+            <div class="form-row">
+              <div>
+                <div class="label">Trạng thái kết nối API</div>
+                <div class="sublabel">Kiểm tra token và quyền truy cập</div>
+              </div>
+              <button class="btn btn-primary">Test kết nối</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Calendar Selection -->
+        <div class="section">
+          <div class="section-title">📅 Lịch hiển thị</div>
+          <div class="form-group">
+            <div class="form-row">
+              <div class="calendar-item">
+                <span class="color-swatch" style="background:#0a84ff;"></span>
+                <span class="label">v.hung@share-wis.com</span>
+              </div>
+              <div class="toggle"></div>
+            </div>
+            <div class="form-row">
+              <div class="calendar-item">
+                <span class="color-swatch" style="background:#30d158;"></span>
+                <span class="label">Holidays in Vietnam</span>
+              </div>
+              <div class="toggle"></div>
+            </div>
+            <div class="form-row">
+              <div class="calendar-item">
+                <span class="color-swatch" style="background:#ff9f0a;"></span>
+                <span class="label">Team Calendar</span>
+              </div>
+              <div class="toggle off"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Notification Settings -->
+        <div class="section">
+          <div class="section-title">🔔 Thông báo</div>
+          <div class="form-group">
+            <div class="form-row">
+              <div>
+                <div class="label">Bật thông báo</div>
+                <div class="sublabel">Yêu cầu quyền từ macOS</div>
+              </div>
+              <div class="toggle"></div>
+            </div>
+            <div class="form-row">
+              <div class="label">Báo trước</div>
+              <select>
+                <option>5 phút</option>
+                <option selected>10 phút</option>
+                <option>15 phút</option>
+                <option>30 phút</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <div>
+                <div class="label">Thông báo lặp lại</div>
+                <div class="sublabel">Nhắc lần 2 nếu chưa bấm Join</div>
+              </div>
+              <div class="toggle off"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. Sync / Refresh -->
+        <div class="section">
+          <div class="section-title">⚙️ Đồng bộ</div>
+          <div class="form-group">
+            <div class="form-row">
+              <div class="label">Tự động đồng bộ</div>
+              <select>
+                <option>5 phút</option>
+                <option selected>15 phút</option>
+                <option>30 phút</option>
+                <option>Tắt</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <div>
+                <div class="label">Khởi động cùng macOS</div>
+                <div class="sublabel">Thêm vào Login Items</div>
+              </div>
+              <div class="toggle"></div>
+            </div>
+            <div class="form-row">
+              <div>
+                <div class="label">Hiện sự kiện cả ngày</div>
+                <div class="sublabel">All-day events trong danh sách</div>
+              </div>
+              <div class="toggle off"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 6. Display -->
+        <div class="section">
+          <div class="section-title">🎨 Giao diện</div>
+          <div class="form-group">
+            <div class="form-row">
+              <div class="label">Định dạng giờ</div>
+              <select>
+                <option selected>24 giờ (18:30)</option>
+                <option>12 giờ (6:30 PM)</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <div class="label">Số sự kiện tối đa</div>
+              <div style="display:flex;align-items:center;flex:1;justify-content:flex-end;gap:4px;">
+                <input type="range" min="3" max="10" value="5" style="width:100px;" />
+                <span class="range-value">5</span>
+              </div>
+            </div>
+            <div class="form-row">
+              <div>
+                <div class="label">Hiện icon Meet trên menu bar</div>
+                <div class="sublabel">Đổi icon khi có cuộc họp sắp tới</div>
+              </div>
+              <div class="toggle"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- About -->
+        <div class="version-text">CalBar 1.0.0 · macOS 13+ · Made with ❤️ in Swift</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── LEGEND / SPEC ── -->
+  <div class="legend">
+    <h2>📋 Danh sách tính năng Settings</h2>
+
+    <div class="legend-section">
+      <h3>1. Tài khoản Google</h3>
+      <div class="legend-item">
+        <div class="legend-num">1</div>
+        <div class="legend-text"><strong>Hiển thị tài khoản đang đăng nhập</strong> — Avatar, tên, email. Badge trạng thái kết nối.</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-num">2</div>
+        <div class="legend-text"><strong>Đăng xuất</strong> — Xoá Access Token, Refresh Token khỏi Keychain.</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-num">3</div>
+        <div class="legend-text"><strong>OAuth Client ID</strong> — Input cho phép nhập Client ID từ Google Cloud Console (lưu vào UserDefaults).</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-num">4</div>
+        <div class="legend-text"><strong>Test kết nối API</strong> — Gọi thử Calendar API, hiển thị kết quả thành công hay lỗi.</div>
+      </div>
+    </div>
+
+    <div class="legend-section">
+      <h3>2. Lịch hiển thị</h3>
+      <div class="legend-item">
+        <div class="legend-num">5</div>
+        <div class="legend-text"><strong>Danh sách calendar</strong> — Lấy từ API, hiển thị màu sắc. Toggle bật/tắt từng calendar.</div>
+      </div>
+    </div>
+
+    <div class="legend-section">
+      <h3>3. Thông báo</h3>
+      <div class="legend-item">
+        <div class="legend-num">6</div>
+        <div class="legend-text"><strong>Bật/tắt thông báo</strong> — Gọi <code>UNUserNotificationCenter.requestAuthorization()</code>.</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-num">7</div>
+        <div class="legend-text"><strong>Báo trước N phút</strong> — 5 / 10 / 15 / 30 phút. Lưu vào <code>@AppStorage</code>.</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-num">8</div>
+        <div class="legend-text"><strong>Nhắc lần 2</strong> — Thông báo thứ 2 nếu người dùng chưa click Join.</div>
+      </div>
+    </div>
+
+    <div class="legend-section">
+      <h3>4. Đồng bộ</h3>
+      <div class="legend-item">
+        <div class="legend-num">9</div>
+        <div class="legend-text"><strong>Chu kỳ tự động refresh</strong> — 5 / 15 / 30 phút hoặc tắt. Cập nhật <code>startAutoRefresh()</code>.</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-num">10</div>
+        <div class="legend-text"><strong>Khởi động cùng macOS</strong> — Dùng <code>SMAppService.mainApp.register()</code> (macOS 13+).</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-num">11</div>
+        <div class="legend-text"><strong>Hiện sự kiện cả ngày</strong> — Toggle lọc all-day events trong danh sách.</div>
+      </div>
+    </div>
+
+    <div class="legend-section">
+      <h3>5. Giao diện</h3>
+      <div class="legend-item">
+        <div class="legend-num">12</div>
+        <div class="legend-text"><strong>Định dạng giờ</strong> — 12h hoặc 24h. Ảnh hưởng <code>timeRangeString</code> trên <code>CalendarEvent</code>.</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-num">13</div>
+        <div class="legend-text"><strong>Số sự kiện tối đa</strong> — Slider 3–10. Giới hạn số item trong <code>upcomingEvents</code>.</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-num">14</div>
+        <div class="legend-text"><strong>Icon động trên menu bar</strong> — Đổi <code>systemImage</code> của MenuBarExtra khi sắp có cuộc họp.</div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

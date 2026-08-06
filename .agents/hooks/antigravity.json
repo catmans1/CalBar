@@ -1,0 +1,12 @@
+{
+  "version": "1.0",
+  "hooks": [
+    {
+      "name": "Swift Syntax Check",
+      "event": "post_file_write",
+      "pattern": "**/*.swift",
+      "action": "run_command",
+      "command": "swiftc -parse ${filePath}"
+    }
+  ]
+}
