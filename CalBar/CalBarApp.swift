@@ -11,7 +11,7 @@ struct CalBarApp: App {
                 .environmentObject(viewModel)
                 .environmentObject(lm)
         } label: {
-            Image(systemName: menuBarIcon)
+            Image(systemName: viewModel.menuBarIconName)
         }
         .menuBarExtraStyle(.window)
 
@@ -22,14 +22,5 @@ struct CalBarApp: App {
         }
         .defaultSize(width: 520, height: 520)
         .windowResizability(.contentMinSize)
-    }
-
-    private var menuBarIcon: String {
-        guard AppSettings.showDynamicMenuBarIcon,
-              let next = viewModel.nextMeeting,
-              next.minutesUntilStart <= 15 else {
-            return "calendar"
-        }
-        return "calendar.badge.exclamationmark"
     }
 }

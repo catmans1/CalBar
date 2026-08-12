@@ -103,6 +103,9 @@ private enum Strings {
         "about.tokenStorage": "Token storage",
         "about.macosReq": "macOS 13.0 Ventura or later",
         "about.keychain": "macOS Keychain",
+        "events.free": "Free for the rest of the day",
+        "events.noMore": "No more meetings scheduled",
+        "later.today": "LATER TODAY",
     ]
 
     static let vi: [String: String] = [
@@ -170,6 +173,9 @@ private enum Strings {
         "about.tokenStorage": "Lưu trữ token",
         "about.macosReq": "macOS 13.0 Ventura trở lên",
         "about.keychain": "macOS Keychain",
+        "events.free": "Rảnh đến hết ngày",
+        "events.noMore": "Không còn cuộc họp nào",
+        "later.today": "SAU ĐÂY",
     ]
 
     static let ja: [String: String] = [
@@ -237,5 +243,8 @@ private enum Strings {
         "about.tokenStorage": "トークン保存",
         "about.macosReq": "macOS 13.0 Ventura 以降",
         "about.keychain": "macOS キーチェーン",
+        "events.free": "今日は自由な時間です",
+        "events.noMore": "他の会議はありません",
+        "later.today": "その後の予定",
     ]
 }
