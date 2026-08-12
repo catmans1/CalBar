@@ -20,16 +20,10 @@ final class CalendarViewModel: ObservableObject {
     var todayEvents: [CalendarEvent] {
         let showAllDay = AppSettings.showAllDayEvents
         let maxCount = AppSettings.maxEventsToShow
-        let upcoming = events.filter { !showAllDay ? !$0.isAllDay : true }
-        // Show up to maxCount future events, plus all past events before them
-        let futureEvents = upcoming.filter { $0.end > Date() }.prefix(maxCount)
-        let pastEvents = upcoming.filter { $0.end <= Date() }
-        return (pastEvents + futureEvents).map { $0 }
-    }
-
-    // Kept for backward compatibility with empty-state check
-    var upcomingEvents: [CalendarEvent] {
-        todayEvents.filter { $0.end > Date() }
+        return events
+            .filter { $0.end > Date() && (!showAllDay ? !$0.isAllDay : true) }
+            .prefix(maxCount)
+            .map { $0 }
     }
 
     var menuBarIconName: String {

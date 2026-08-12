@@ -14,10 +14,10 @@ struct ContentView: View {
             if !viewModel.auth.isAuthenticated {
                 SignInView()
             } else {
-                eventList
+                mainContent
+                    .frame(maxHeight: .infinity)
             }
 
-            // Footer always visible regardless of auth state
             FooterView(
                 onOffsetChange: { viewModel.rescheduleNotifications(offsetMinutes: $0) },
                 onSync: { Task { await viewModel.sync() } },
@@ -35,65 +35,99 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Event List
+    // MARK: - Main Content
 
     @ViewBuilder
-    private var eventList: some View {
+    private var mainContent: some View {
         if viewModel.isLoading && viewModel.events.isEmpty {
             HStack { Spacer(); ProgressView(); Spacer() }
-                .padding(.vertical, 40)
+                .frame(maxHeight: .infinity)
         } else if let error = viewModel.errorMessage {
             Text(error)
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.vertical, 20)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                .padding(.horizontal, 20)
         } else if viewModel.todayEvents.isEmpty {
-            VStack(spacing: 8) {
-                Image(systemName: "calendar.badge.checkmark")
-                    .font(.system(size: 28))
-                    .foregroundStyle(.secondary)
-                Text(lm.str("events.empty"))
-                    .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 30)
+            FreeView()
         } else {
-            let nextID = viewModel.nextMeeting?.id
-            ScrollViewReader { proxy in
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 6) {
-                        Text(lm.str("today"))
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(.secondary)
-                            .textCase(.uppercase)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.bottom, 2)
-
-                        ForEach(viewModel.todayEvents) { event in
-                            EventRowView(
-                                event: event,
-                                onJoin: { viewModel.openMeeting(event) },
-                                isPast: event.end <= Date(),
-                                isNext: event.id == nextID
-                            )
-                            .id(event.id)
-                        }
-                    }
-                    .padding(.bottom, 4)
-                }
-                .onAppear { scrollToNext(proxy: proxy, id: nextID) }
-                .onChange(of: viewModel.events) { _, _ in scrollToNext(proxy: proxy, id: viewModel.nextMeeting?.id) }
-            }
+            focusView
         }
     }
 
-    private func scrollToNext(proxy: ScrollViewProxy, id: String?) {
-        guard let id else { return }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            withAnimation { proxy.scrollTo(id, anchor: .top) }
+    // MARK: - Focus View
+
+    @ViewBuilder
+    private var focusView: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 12) {
+                // Hero card: next upcoming meeting
+                if let next = viewModel.nextMeeting {
+                    NextMeetingCardView(event: next) {
+                        viewModel.openMeeting(next)
+                    }
+                }
+
+                // Compact list for remaining events
+                let later = viewModel.todayEvents.filter { $0.id != viewModel.nextMeeting?.id }
+                if !later.isEmpty {
+                    LaterTodayView(events: later) { event in
+                        viewModel.openMeeting(event)
+                    }
+                }
+            }
+            .padding(.bottom, 4)
         }
+    }
+}
+
+// MARK: - Later Today
+
+private struct LaterTodayView: View {
+    let events: [CalendarEvent]
+    let onJoin: (CalendarEvent) -> Void
+    @EnvironmentObject private var lm: LocalizationManager
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(lm.str("later.today"))
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(.tertiary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            ForEach(events) { event in
+                EventRowView(
+                    event: event,
+                    onJoin: { onJoin(event) },
+                    isPast: false,
+                    isNext: false
+                )
+            }
+        }
+    }
+}
+
+// MARK: - Free View
+
+private struct FreeView: View {
+    @EnvironmentObject private var lm: LocalizationManager
+
+    var body: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 36))
+                .foregroundStyle(.green.opacity(0.75))
+            Text(lm.str("events.free"))
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(.primary)
+                .multilineTextAlignment(.center)
+            Text(lm.str("events.noMore"))
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, 20)
     }
 }
 
