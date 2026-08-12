@@ -1,13 +1,14 @@
 # Coding Rules & Lessons Learned
 
-Tài liệu này ghi lại các quy tắc code và lỗi đã gặp trong quá trình phát triển CalBar.
+Patterns and rules established during CalBar development.
 
-## Swift / SwiftUI Rules
+## Swift / SwiftUI
 
-### 1. import Combine bắt buộc cho ObservableObject
-Bất kỳ class nào dùng `@Published` phải có `import Combine` — SwiftUI không re-export Combine.
+### 1. `import Combine` required for ObservableObject
+
+Any class using `@Published` must import Combine — SwiftUI does not re-export it.
+
 ```swift
-// ĐÚNG
 import Combine
 import Foundation
 
@@ -16,70 +17,81 @@ final class MyViewModel: ObservableObject {
 }
 ```
 
-### 2. Section với header và footer phải dùng closure form
+### 2. Section with header and footer requires closure form
+
 ```swift
-// SAI — compiler error
+// Wrong — compiler error
 Section("My Header") {
     Toggle(...)
-} footer: {
-    Text("...")
-}
+} footer: { Text("...") }
 
-// ĐÚNG
+// Correct
 Section {
     Toggle(...)
-} header: {
-    Text("My Header")
-} footer: {
-    Text("...")
-}
+} header: { Text("My Header") }
+  footer: { Text("...") }
 ```
 
-### 3. Xcode file path prefix
-Khi tạo file/thư mục mới trong Xcode project phải dùng prefix `CalBar/CalBar/` để nằm trong app target:
-- ĐÚNG: `CalBar/CalBar/Models/MyModel.swift`
-- SAI: `CalBar/Models/MyModel.swift` (nằm ngoài target, không compile)
+### 3. Xcode file paths must use `CalBar/CalBar/` prefix
 
-### 4. WindowContextProvider không phải ObservableObject
+Files must be inside the app target folder to compile:
+
+- Correct: `CalBar/CalBar/Models/MyModel.swift`
+- Wrong: `CalBar/Models/MyModel.swift` (outside target, not compiled)
+
+### 4. WindowContextProvider is a plain NSObject, not ObservableObject
+
 ```swift
-// ĐÚNG — plain NSObject singleton
 final class WindowContextProvider: NSObject, ASWebAuthenticationPresentationContextProviding {
     static let shared = WindowContextProvider()
     private override init() { super.init() }
 }
-// Dùng @State hoặc singleton, không dùng @StateObject
 ```
 
-### 5. FooterView phải luôn hiển thị
-`FooterView` phải đặt BÊN NGOÀI điều kiện `if auth.isAuthenticated` trong `ContentView`:
+Use as a singleton directly, not with `@StateObject`.
+
+### 5. FooterView must always be visible
+
+Place `FooterView` outside the `isAuthenticated` condition in `ContentView`:
+
 ```swift
-// ĐÚNG
 VStack {
     if auth.isAuthenticated { EventList() } else { SignInView() }
-    FooterView()  // luôn ở đây
+    FooterView()  // always rendered
 }
 ```
 
-### 6. Settings Window mở bằng openWindow
+### 6. Settings window opened via openWindow environment action
+
 ```swift
 @Environment(\.openWindow) private var openWindow
 Button { openWindow(id: "calbar-settings") } label: { ... }
 ```
-Window phải được khai báo trong `CalBarApp.body`:
-```swift
-Window("Cài đặt", id: "calbar-settings") { SettingsView() }
-```
 
-### 7. AppSettings là static struct
+The `Window` scene must be declared in `CalBarApp.body` with a matching id.
+
+### 7. AppSettings is a static struct — views use @AppStorage with the same keys
+
 ```swift
-// Đọc settings từ bất kỳ đâu
+// Read from anywhere
 let offset = AppSettings.notificationOffset
-let ids = AppSettings.selectedCalendarIDs
 
-// Views dùng @AppStorage trực tiếp với cùng key
+// Bind in views
 @AppStorage(AppSettings.Keys.notificationOffset) private var offset: Int = 5
 ```
 
-### 8. AuthManager.clientID đọc từ UserDefaults
-clientID không hardcode — đọc từ `UserDefaults` để người dùng có thể cấu hình trong Settings.
-redirectScheme được derive tự động từ clientID.
+### 8. Never edit `.pbxproj` while Xcode is open
+
+Editing `project.pbxproj` while Xcode is running risks crashing Xcode or corrupting the project file. Make structural changes (adding files, changing build settings) through Xcode's UI instead.
+
+### 9. Async/await over Combine
+
+All async work uses `async/await` and `Task`. Combine (`Publisher`, `sink`, `AnyCancellable`) is not used in this project.
+
+### 10. Google OAuth for Desktop apps requires client_secret
+
+Desktop-type OAuth clients require `client_secret` in both the authorization code exchange and token refresh requests, even when using PKCE.
+
+### 11. App Sandbox blocks all outgoing network by default
+
+The `com.apple.security.network.client` entitlement must be set to `true` in the `.entitlements` file for any outgoing HTTP request to succeed.

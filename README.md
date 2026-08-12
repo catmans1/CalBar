@@ -2,20 +2,23 @@
 
 A lightweight native macOS Menu Bar app that displays your Google Calendar events for today — right from the status bar.
 
-> 🤖 **Built with vibe coding** (AI-assisted development using Claude Code) for personal use.
+> Built with **vibe coding** (AI-assisted development using [Claude Code](https://claude.com/claude-code)) for personal use.
 
 ---
 
 ## What does it do?
 
-CalBar lives quietly in your macOS menu bar. Click the calendar icon to see a compact 340×420 popover with:
+CalBar lives quietly in your macOS menu bar. Click the calendar icon to see a compact popover with:
 
-- **Next meeting card** — highlighted gradient card showing your nearest upcoming event, with a one-click **Join Meet** button
-- **Today's events** — full list of today's remaining meetings with time and location
-- **Smart notifications** — local alerts sent 5, 10, 15, or 30 minutes before each event
+- **All today's events** in a single scrollable list — past events dimmed, upcoming events enabled
+- **Auto-scroll** to your next meeting when the popover opens
+- **Live countdown** on the next meeting row: `In 2h 3m 15s`, updating every second
+- **One-click Join** button for Google Meet links
+- **Smart notifications** — local alerts before each event (configurable offset + optional second reminder)
 - **Dynamic icon** — menu bar icon switches to a warning badge when a meeting is within 15 minutes
+- **Multi-language** — English, Tiếng Việt, 日本語, switchable at runtime
 
-Everything syncs automatically every 15 minutes in the background. No browser tab, no Electron, no bloat — pure SwiftUI.
+Everything syncs automatically in the background. No browser tab, no Electron, no bloat — pure SwiftUI.
 
 ---
 
@@ -25,13 +28,15 @@ Everything syncs automatically every 15 minutes in the background. No browser ta
 |---|---|
 | Menu Bar popover | 340×420, `.ultraThinMaterial` translucent background |
 | Authentication | Google OAuth 2.0 + PKCE via `ASWebAuthenticationSession` |
-| Token storage | Access token + refresh token stored in macOS Keychain |
+| Token storage | Access + refresh token stored in macOS Keychain |
 | Calendar data | Google Calendar REST API v3, supports multiple calendars |
+| Event display | Full day list — past events dimmed, next event highlighted with live countdown |
+| Auto-scroll | Popover scrolls to next upcoming event on open |
 | Notifications | `UNUserNotificationCenter` — configurable offset + optional second reminder |
 | Video join | One-click open for Google Meet links |
 | Background sync | Auto-refresh every 5 / 15 / 30 min (configurable) |
 | Launch at login | `SMAppService` integration |
-| Dynamic icon | ⚠️ badge when meeting starts within 15 min |
+| Dynamic icon | Warning badge when meeting starts within 15 min |
 | Multi-language | English, Tiếng Việt, 日本語 — switchable at runtime |
 | Settings window | 6-tab sidebar: Account, Calendars, Notifications, Sync, Display, About |
 
@@ -42,7 +47,7 @@ Everything syncs automatically every 15 minutes in the background. No browser ta
 - macOS 13.0 Ventura or later
 - Xcode 15+
 - A Google account with Google Calendar
-- A Google Cloud project with OAuth 2.0 credentials
+- A Google Cloud project with OAuth 2.0 credentials (Desktop app type)
 
 ---
 
@@ -56,37 +61,37 @@ cd CalBar
 open CalBar.xcodeproj
 ```
 
-### 2. Create a Google OAuth Client ID
+### 2. Create a Google OAuth Client
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project (or select an existing one)
-3. Enable **Google Calendar API**: *APIs & Services → Library → search "Google Calendar API" → Enable*
-4. Create credentials: *APIs & Services → Credentials → Create Credentials → OAuth client ID*
+2. Create or select a project
+3. Enable **Google Calendar API**: APIs & Services → Library → search "Google Calendar API" → Enable
+4. Create credentials: APIs & Services → Credentials → Create Credentials → OAuth client ID
 5. Application type: **Desktop app**
-6. Copy the generated **Client ID** — it looks like `123456789-xxxx.apps.googleusercontent.com`
+6. Copy the **Client ID** (`123456789-xxxx.apps.googleusercontent.com`) and **Client Secret**
 
-### 3. Add URL Scheme to Xcode
+### 3. Configure the URL Scheme in Xcode
 
-In Xcode, open `CalBar/Info.plist` and add a URL Scheme entry:
+Open `CalBar/Info.plist` and set the URL scheme to match your Client ID:
 
 | Key | Value |
 |---|---|
-| URL Schemes | `com.googleusercontent.apps.YOUR_CLIENT_ID` |
+| CFBundleURLSchemes | `com.googleusercontent.apps.YOUR_CLIENT_ID` |
 
-> Replace `YOUR_CLIENT_ID` with the numeric part before `.apps.googleusercontent.com`. For example, if your Client ID is `123456-abc.apps.googleusercontent.com`, the scheme is `com.googleusercontent.apps.123456-abc`.
+> Replace `YOUR_CLIENT_ID` with the numeric portion before `.apps.googleusercontent.com`.
+> Example: if your Client ID is `123456-abc.apps.googleusercontent.com`, the scheme is `com.googleusercontent.apps.123456-abc`.
 
 ### 4. Build & Run
 
-- Select the **CalBar** scheme in Xcode
-- Press `⌘R` to build and run
-- The calendar icon appears in your menu bar
+Select the **CalBar** scheme in Xcode and press `⌘R`.
 
 ### 5. Sign in
 
-1. Click the menu bar icon → click the ⚙️ button → **Settings**
-2. Go to **Account** tab → paste your Client ID
-3. Click **Sign in with Google** — a browser window will open for OAuth
-4. After authorizing, your events will load automatically
+1. Click the calendar icon in the menu bar → click ⚙️ → **Settings**
+2. Go to **Account** tab
+3. Paste your **Client ID** and **Client Secret**
+4. Click **Sign in with Google** — a browser window opens for OAuth
+5. After authorizing, your events load automatically
 
 ---
 
@@ -99,21 +104,21 @@ CalBar/
 ├── Models/
 │   ├── AppSettings.swift        # UserDefaults accessors, all keys centralized
 │   ├── CalendarEvent.swift      # Event model with time formatting
-│   ├── CalendarList.swift       # Calendar list API model + Color(hex:)
-│   └── LocalizationManager.swift# Multi-language (en/vi/ja) string tables
+│   ├── CalendarList.swift       # Calendar list API model
+│   └── LocalizationManager.swift# Multi-language string tables (en/vi/ja)
 ├── Services/
-│   ├── AuthManager.swift        # OAuth 2.0 + PKCE flow
+│   ├── AuthManager.swift        # OAuth 2.0 + PKCE flow, token refresh
 │   ├── GoogleCalendarService.swift # Calendar REST API, concurrent fetch
 │   ├── KeychainManager.swift    # Secure token storage
 │   └── NotificationManager.swift # UNUserNotificationCenter scheduling
 ├── ViewModels/
 │   └── CalendarViewModel.swift  # @MainActor ObservableObject, business logic
 └── Views/
-    ├── NextMeetingCardView.swift # Gradient card for upcoming meeting
-    ├── EventRowView.swift        # Single event row
-    ├── FooterView.swift          # Notify picker, sync, settings, sign-out
+    ├── EventRowView.swift        # Single event row (past/next/future states)
+    ├── FooterView.swift          # Notify picker, sync, settings buttons
+    ├── NextMeetingCardView.swift # Countdown logic (reusable)
     └── Settings/
-        ├── SettingsView.swift    # NavigationSplitView sidebar
+        ├── SettingsView.swift
         ├── AccountSettingsView.swift
         ├── CalendarSettingsView.swift
         ├── NotificationSettingsView.swift
@@ -126,7 +131,7 @@ CalBar/
 
 ## Tech Stack
 
-- **SwiftUI** — UI, `MenuBarExtra(.window)`, `NavigationSplitView`
+- **SwiftUI** — UI, `MenuBarExtra(.window)`, `NavigationSplitView`, `TimelineView`
 - **AuthenticationServices** — `ASWebAuthenticationSession` for OAuth
 - **CryptoKit** — SHA256 for PKCE code challenge
 - **Security** — macOS Keychain for token storage
@@ -137,7 +142,7 @@ CalBar/
 
 ## Vibe Coding
 
-This project was built entirely through **vibe coding** — conversational, AI-assisted development using [Claude Code](https://claude.com/claude-code). The architecture, implementation, and multi-language support were designed and written iteratively through natural-language prompts.
+This project was built entirely through **vibe coding** — conversational, AI-assisted development using [Claude Code](https://claude.com/claude-code). The architecture, implementation, multi-language support, and UX improvements were designed and written iteratively through natural-language prompts.
 
 Built for personal use. No App Store distribution planned.
 
