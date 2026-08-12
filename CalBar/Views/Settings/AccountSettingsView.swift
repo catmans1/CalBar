@@ -3,7 +3,8 @@ import SwiftUI
 struct AccountSettingsView: View {
     @EnvironmentObject var viewModel: CalendarViewModel
     @EnvironmentObject private var lm: LocalizationManager
-    @AppStorage(AppSettings.Keys.oauthClientID) private var clientID: String = ""
+    @AppStorage(AppSettings.Keys.oauthClientID)     private var clientID: String = ""
+    @AppStorage(AppSettings.Keys.oauthClientSecret) private var clientSecret: String = ""
     @State private var testStatus: TestStatus = .idle
 
     var body: some View {
@@ -14,10 +15,27 @@ struct AccountSettingsView: View {
                     Button(lm.str("sign.out")) { viewModel.signOut() }
                         .foregroundStyle(.red)
                 } else {
-                    Button(lm.str("signin.button")) {
-                        Task { await viewModel.signIn(contextProvider: WindowContextProvider.shared) }
+                    if viewModel.isLoading {
+                        HStack(spacing: 8) {
+                            ProgressView().scaleEffect(0.8)
+                            Text("Đang đăng nhập...")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    } else {
+                        Button(lm.str("signin.button")) {
+                            viewModel.errorMessage = nil
+                            Task { await viewModel.signIn(contextProvider: WindowContextProvider.shared) }
+                        }
+                        .disabled(clientID.isEmpty || clientSecret.isEmpty)
                     }
-                    .disabled(viewModel.isLoading)
+
+                    if let error = viewModel.errorMessage {
+                        Label(error, systemImage: "exclamationmark.triangle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
 
@@ -27,6 +45,13 @@ struct AccountSettingsView: View {
                         .font(.system(size: 11, design: .monospaced))
                         .textFieldStyle(.roundedBorder)
                         .onChange(of: clientID) { _, _ in testStatus = .idle }
+                }
+
+                LabeledContent("Client Secret") {
+                    SecureField("your client secret", text: $clientSecret)
+                        .font(.system(size: 11, design: .monospaced))
+                        .textFieldStyle(.roundedBorder)
+                        .onChange(of: clientSecret) { _, _ in testStatus = .idle }
                 }
 
                 HStack(spacing: 10) {
@@ -100,8 +125,20 @@ struct AccountSettingsView: View {
             let token = try await AuthManager.shared.validAccessToken()
             var req = URLRequest(url: URL(string: "https://www.googleapis.com/calendar/v3/calendars/primary")!)
             req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-            let (_, response) = try await URLSession.shared.data(for: req)
-            testStatus = (response as? HTTPURLResponse)?.statusCode == 200 ? .success : .failure(lm.str("error.http"))
+            let (data, response) = try await URLSession.shared.data(for: req)
+            let code = (response as? HTTPURLResponse)?.statusCode ?? 0
+            if code == 200 {
+                testStatus = .success
+            } else {
+                let body = String(data: data, encoding: .utf8) ?? ""
+                // Extract Google's error message if present
+                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let err = (json["error"] as? [String: Any])?["message"] as? String {
+                    testStatus = .failure("HTTP \(code): \(err)")
+                } else {
+                    testStatus = .failure("HTTP \(code)")
+                }
+            }
         } catch {
             testStatus = .failure(error.localizedDescription)
         }

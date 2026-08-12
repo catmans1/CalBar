@@ -27,6 +27,10 @@ final class LocalizationManager: ObservableObject {
     func strFormat(_ key: String, _ n: Int) -> String {
         String(format: str(key), n)
     }
+
+    func strFormatStr(_ key: String, _ s: String) -> String {
+        String(format: str(key), s)
+    }
 }
 
 // MARK: - String Tables
@@ -49,6 +53,7 @@ private enum Strings {
         "meeting.now": "Happening now",
         "meeting.inMinute": "In 1 minute",
         "meeting.inMinutes": "In %d minutes",
+        "meeting.inDuration": "In %@",
         "meeting.join": "Join Meet",
         "join": "Join",
         "tab.account": "Account",
@@ -115,6 +120,7 @@ private enum Strings {
         "meeting.now": "Đang diễn ra",
         "meeting.inMinute": "Trong 1 phút nữa",
         "meeting.inMinutes": "Trong %d phút nữa",
+        "meeting.inDuration": "Còn %@",
         "meeting.join": "Vào Meet",
         "join": "Tham gia",
         "tab.account": "Tài khoản",
@@ -181,6 +187,7 @@ private enum Strings {
         "meeting.now": "開催中",
         "meeting.inMinute": "1分後",
         "meeting.inMinutes": "%d分後",
+        "meeting.inDuration": "%@後",
         "meeting.join": "Meetに参加",
         "join": "参加",
         "tab.account": "アカウント",
