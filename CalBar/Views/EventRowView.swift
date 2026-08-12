@@ -18,10 +18,19 @@ struct EventRowView: View {
             }
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(event.summary)
-                    .font(.system(size: 12, weight: isNext ? .semibold : .medium))
-                    .foregroundStyle(isPast ? .tertiary : .primary)
-                    .lineLimit(1)
+                HStack(spacing: 6) {
+                    Text(event.summary)
+                        .font(.system(size: 12, weight: isNext ? .semibold : .medium))
+                        .foregroundStyle(isPast ? .tertiary : .primary)
+                        .lineLimit(1)
+                    if isNext {
+                        TimelineView(.periodic(from: .now, by: 1)) { context in
+                            Text(countdown(at: context.date))
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(Color.blue)
+                        }
+                    }
+                }
                 Text(subtitle)
                     .font(.system(size: 10))
                     .foregroundStyle(isPast ? .quaternary : .secondary)
@@ -41,6 +50,20 @@ struct EventRowView: View {
                     isNext ? RoundedRectangle(cornerRadius: 6).stroke(Color.blue.opacity(0.25), lineWidth: 1) : nil
                 )
         )
+    }
+
+    private func countdown(at now: Date) -> String {
+        let seconds = event.start.timeIntervalSince(now)
+        if seconds <= 0 { return lm.str("meeting.now") }
+        let total = Int(seconds)
+        let h = total / 3600
+        let m = (total % 3600) / 60
+        let s = total % 60
+        var parts: [String] = []
+        if h > 0 { parts.append("\(h)h") }
+        if m > 0 { parts.append("\(m)m") }
+        if s > 0 || parts.isEmpty { parts.append("\(s)s") }
+        return lm.strFormatStr("meeting.inDuration", parts.joined(separator: " "))
     }
 
     private var subtitle: String {
