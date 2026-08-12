@@ -58,6 +58,7 @@ struct AppSettings {
         static let maxEventsToShow       = "maxEventsToShow"
         static let showDynamicMenuBarIcon = "showDynamicMenuBarIcon"
         static let oauthClientID         = "oauthClientID"
+        static let oauthClientSecret     = "oauthClientSecret"
         static let selectedCalendarIDs   = "selectedCalendarIDs"
         static let appLanguage           = "appLanguage"
     }

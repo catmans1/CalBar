@@ -39,46 +39,60 @@ struct ContentView: View {
 
     @ViewBuilder
     private var eventList: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 12) {
-                if viewModel.isLoading && viewModel.events.isEmpty {
-                    HStack { Spacer(); ProgressView(); Spacer() }
-                        .padding(.vertical, 40)
-                } else if let error = viewModel.errorMessage {
-                    Text(error)
-                        .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(.vertical, 20)
-                } else if viewModel.upcomingEvents.isEmpty {
-                    VStack(spacing: 8) {
-                        Image(systemName: "calendar.badge.checkmark")
-                            .font(.system(size: 28))
-                            .foregroundStyle(.secondary)
-                        Text(lm.str("events.empty"))
-                            .font(.system(size: 12))
-                            .foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 30)
-                } else {
-                    if let next = viewModel.nextMeeting {
-                        NextMeetingCardView(event: next) { viewModel.openMeeting(next) }
-                    }
-
-                    Text(lm.str("today"))
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                        .textCase(.uppercase)
-
+        if viewModel.isLoading && viewModel.events.isEmpty {
+            HStack { Spacer(); ProgressView(); Spacer() }
+                .padding(.vertical, 40)
+        } else if let error = viewModel.errorMessage {
+            Text(error)
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.vertical, 20)
+        } else if viewModel.todayEvents.isEmpty {
+            VStack(spacing: 8) {
+                Image(systemName: "calendar.badge.checkmark")
+                    .font(.system(size: 28))
+                    .foregroundStyle(.secondary)
+                Text(lm.str("events.empty"))
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 30)
+        } else {
+            let nextID = viewModel.nextMeeting?.id
+            ScrollViewReader { proxy in
+                ScrollView(showsIndicators: false) {
                     VStack(spacing: 6) {
-                        ForEach(viewModel.upcomingEvents) { event in
-                            EventRowView(event: event) { viewModel.openMeeting(event) }
+                        Text(lm.str("today"))
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                            .textCase(.uppercase)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.bottom, 2)
+
+                        ForEach(viewModel.todayEvents) { event in
+                            EventRowView(
+                                event: event,
+                                onJoin: { viewModel.openMeeting(event) },
+                                isPast: event.end <= Date(),
+                                isNext: event.id == nextID
+                            )
+                            .id(event.id)
                         }
                     }
+                    .padding(.bottom, 4)
                 }
+                .onAppear { scrollToNext(proxy: proxy, id: nextID) }
+                .onChange(of: viewModel.events) { _, _ in scrollToNext(proxy: proxy, id: viewModel.nextMeeting?.id) }
             }
-            .padding(.bottom, 4)
+        }
+    }
+
+    private func scrollToNext(proxy: ScrollViewProxy, id: String?) {
+        guard let id else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            withAnimation { proxy.scrollTo(id, anchor: .top) }
         }
     }
 }

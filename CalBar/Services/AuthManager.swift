@@ -26,6 +26,10 @@ final class AuthManager: ObservableObject {
     private let scope = "https://www.googleapis.com/auth/calendar.readonly email profile"
     private var codeVerifier = ""
 
+    private var clientSecret: String {
+        UserDefaults.standard.string(forKey: AppSettings.Keys.oauthClientSecret) ?? ""
+    }
+
     init() {
         if let token = KeychainManager.shared.load(for: .accessToken), !token.isEmpty {
             isAuthenticated = true
@@ -94,13 +98,15 @@ final class AuthManager: ObservableObject {
     // MARK: - Private
 
     private func exchangeCode(_ code: String) async throws {
-        let response = try await postToken([
+        var params: [String: String] = [
             "code":          code,
             "client_id":     clientID,
             "redirect_uri":  redirectURI,
             "grant_type":    "authorization_code",
             "code_verifier": codeVerifier
-        ])
+        ]
+        if !clientSecret.isEmpty { params["client_secret"] = clientSecret }
+        let response = try await postToken(params)
         storeTokens(response)
     }
 
@@ -109,11 +115,13 @@ final class AuthManager: ObservableObject {
             signOut()
             throw AuthError.notAuthenticated
         }
-        let response = try await postToken([
+        var params: [String: String] = [
             "refresh_token": refresh,
             "client_id":     clientID,
             "grant_type":    "refresh_token"
-        ])
+        ]
+        if !clientSecret.isEmpty { params["client_secret"] = clientSecret }
+        let response = try await postToken(params)
         storeTokens(response)
         return response.accessToken
     }
@@ -127,6 +135,11 @@ final class AuthManager: ObservableObject {
             .joined(separator: "&")
             .data(using: .utf8)
         let (data, _) = try await URLSession.shared.data(for: request)
+        // Surface Google's error message before attempting to decode a token
+        if let googleError = try? JSONDecoder().decode(GoogleErrorResponse.self, from: data),
+           !googleError.error.isEmpty {
+            throw AuthError.serverError("\(googleError.error): \(googleError.errorDescription ?? "")")
+        }
         return try JSONDecoder().decode(TokenResponse.self, from: data)
     }
 
@@ -187,15 +200,25 @@ private struct TokenResponse: Codable {
 }
 
 enum AuthError: LocalizedError {
-    case invalidURL, cancelled, missingCode, notAuthenticated
+    case invalidURL, cancelled, missingCode, notAuthenticated, serverError(String)
 
     var errorDescription: String? {
         switch self {
-        case .invalidURL:       return "Invalid authentication URL"
-        case .cancelled:        return "Sign-in was cancelled"
-        case .missingCode:      return "Authorization code not received"
-        case .notAuthenticated: return "Not signed in. Please sign in again."
+        case .invalidURL:           return "Invalid authentication URL"
+        case .cancelled:            return "Sign-in was cancelled"
+        case .missingCode:          return "Authorization code not received"
+        case .notAuthenticated:     return "Not signed in. Please sign in again."
+        case .serverError(let msg): return "Google error: \(msg)"
         }
+    }
+}
+
+private struct GoogleErrorResponse: Decodable {
+    let error: String
+    let errorDescription: String?
+    enum CodingKeys: String, CodingKey {
+        case error
+        case errorDescription = "error_description"
     }
 }
 

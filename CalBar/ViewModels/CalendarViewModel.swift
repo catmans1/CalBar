@@ -14,21 +14,22 @@ final class CalendarViewModel: ObservableObject {
     private var refreshTask: Task<Void, Never>?
 
     var nextMeeting: CalendarEvent? {
-        events.first { $0.isUpcoming }
+        events.first { $0.end > Date() && !$0.isAllDay }
     }
 
-    var upcomingEvents: [CalendarEvent] {
-        let now = Date()
+    var todayEvents: [CalendarEvent] {
         let showAllDay = AppSettings.showAllDayEvents
         let maxCount = AppSettings.maxEventsToShow
-        return events
-            .filter { event in
-                guard event.end > now else { return false }
-                if !showAllDay && event.isAllDay { return false }
-                return true
-            }
-            .prefix(maxCount)
-            .map { $0 }
+        let upcoming = events.filter { !showAllDay ? !$0.isAllDay : true }
+        // Show up to maxCount future events, plus all past events before them
+        let futureEvents = upcoming.filter { $0.end > Date() }.prefix(maxCount)
+        let pastEvents = upcoming.filter { $0.end <= Date() }
+        return (pastEvents + futureEvents).map { $0 }
+    }
+
+    // Kept for backward compatibility with empty-state check
+    var upcomingEvents: [CalendarEvent] {
+        todayEvents.filter { $0.end > Date() }
     }
 
     var menuBarIconName: String {

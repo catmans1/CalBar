@@ -11,10 +11,12 @@ struct NextMeetingCardView: View {
                 Circle()
                     .fill(Color.green)
                     .frame(width: 6, height: 6)
-                Text(badgeText)
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(Color.green)
-                    .textCase(.uppercase)
+                TimelineView(.periodic(from: .now, by: 1)) { context in
+                    Text(badgeText(at: context.date))
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(Color.green)
+                        .textCase(.uppercase)
+                }
             }
 
             Text(event.summary)
@@ -48,10 +50,21 @@ struct NextMeetingCardView: View {
         )
     }
 
-    private var badgeText: String {
-        let m = event.minutesUntilStart
-        if m <= 0 { return lm.str("meeting.now") }
-        return m == 1 ? lm.str("meeting.inMinute") : lm.strFormat("meeting.inMinutes", m)
+    private func badgeText(at now: Date) -> String {
+        let seconds = event.start.timeIntervalSince(now)
+        if seconds <= 0 { return lm.str("meeting.now") }
+
+        let total = Int(seconds)
+        let h = total / 3600
+        let m = (total % 3600) / 60
+        let s = total % 60
+
+        var parts: [String] = []
+        if h > 0 { parts.append("\(h)h") }
+        if m > 0 { parts.append("\(m)m") }
+        if s > 0 || parts.isEmpty { parts.append("\(s)s") }
+
+        return lm.strFormatStr("meeting.inDuration", parts.joined(separator: " "))
     }
 }
 
