@@ -21,7 +21,8 @@ struct ContentView: View {
             FooterView(
                 onOffsetChange: { viewModel.rescheduleNotifications(offsetMinutes: $0) },
                 onSync: { Task { await viewModel.sync() } },
-                onSignOut: { viewModel.signOut() }
+                onSignOut: { viewModel.signOut() },
+                onImport: { viewModel.importICSFile() }
             )
         }
         .padding(14)
@@ -39,6 +40,20 @@ struct ContentView: View {
 
     @ViewBuilder
     private var mainContent: some View {
+        VStack(spacing: 0) {
+            if viewModel.importState != .idle {
+                ImportBanner(state: viewModel.importState)
+                    .padding(.bottom, 8)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+            innerContent
+        }
+        .animation(.easeInOut(duration: 0.2), value: viewModel.importState != .idle)
+        .frame(maxHeight: .infinity)
+    }
+
+    @ViewBuilder
+    private var innerContent: some View {
         if viewModel.isLoading && viewModel.events.isEmpty {
             HStack { Spacer(); ProgressView(); Spacer() }
                 .frame(maxHeight: .infinity)
@@ -62,14 +77,12 @@ struct ContentView: View {
     private var focusView: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 12) {
-                // Hero card: next upcoming meeting
                 if let next = viewModel.nextMeeting {
                     NextMeetingCardView(event: next) {
                         viewModel.openMeeting(next)
                     }
                 }
 
-                // Compact list for remaining events
                 let later = viewModel.todayEvents.filter { $0.id != viewModel.nextMeeting?.id }
                 if !later.isEmpty {
                     LaterTodayView(events: later) { event in
@@ -78,6 +91,60 @@ struct ContentView: View {
                 }
             }
             .padding(.bottom, 4)
+        }
+    }
+}
+
+// MARK: - Import Banner
+
+private struct ImportBanner: View {
+    let state: ImportState
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 11))
+            Text(label)
+                .font(.system(size: 11))
+                .lineLimit(2)
+            Spacer()
+        }
+        .foregroundStyle(color)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(
+            RoundedRectangle(cornerRadius: 7)
+                .fill(color.opacity(0.1))
+        )
+    }
+
+    private var icon: String {
+        switch state {
+        case .idle:               return "circle"
+        case .importing:          return "arrow.down.circle"
+        case .success:            return "checkmark.circle.fill"
+        case .failure:            return "exclamationmark.triangle.fill"
+        }
+    }
+
+    private var color: Color {
+        switch state {
+        case .idle, .importing:   return .blue
+        case .success:            return .green
+        case .failure:            return .red
+        }
+    }
+
+    private var label: String {
+        switch state {
+        case .idle:
+            return ""
+        case .importing(let current, let total):
+            return "Importing \(current)/\(total)…"
+        case .success(let count):
+            return "\(count) event\(count == 1 ? "" : "s") imported"
+        case .failure(let msg):
+            return msg
         }
     }
 }

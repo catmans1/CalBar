@@ -7,6 +7,7 @@ struct FooterView: View {
     let onOffsetChange: (Int) -> Void
     let onSync: () -> Void
     let onSignOut: () -> Void
+    let onImport: () -> Void
 
     var body: some View {
         HStack {
@@ -28,6 +29,14 @@ struct FooterView: View {
             }
 
             Spacer()
+
+            Button(action: onImport) {
+                Image(systemName: "arrow.down.doc")
+                    .font(.system(size: 12))
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .help("Import .ics file")
 
             Button(action: onSync) {
                 Image(systemName: "arrow.clockwise")
