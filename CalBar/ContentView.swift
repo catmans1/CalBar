@@ -7,33 +7,52 @@ struct ContentView: View {
     @EnvironmentObject private var lm: LocalizationManager
 
     var body: some View {
-        VStack(spacing: 0) {
-            HeaderView()
-            Divider().opacity(0.3).padding(.bottom, 10)
+        ZStack {
+            // Main content
+            VStack(spacing: 0) {
+                HeaderView()
+                Divider().opacity(0.3).padding(.bottom, 10)
 
-            if !viewModel.auth.isAuthenticated {
-                SignInView()
-            } else {
-                mainContent
-                    .frame(maxHeight: .infinity)
+                if !viewModel.auth.isAuthenticated {
+                    SignInView()
+                } else {
+                    mainContent
+                        .frame(maxHeight: .infinity)
+                }
+
+                FooterView(
+                    onOffsetChange: { viewModel.rescheduleNotifications(offsetMinutes: $0) },
+                    onSync: { Task { await viewModel.sync() } },
+                    onSignOut: { viewModel.signOut() },
+                    onImport: { viewModel.importICSFile() },
+                    onNewEvent: {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                            viewModel.showNewEvent = true
+                        }
+                    }
+                )
+            }
+            .padding(14)
+            .frame(width: 340, height: 420)
+            .background(.ultraThinMaterial)
+            .onAppear {
+                if viewModel.auth.isAuthenticated && viewModel.events.isEmpty {
+                    Task { await viewModel.sync() }
+                }
             }
 
-            FooterView(
-                onOffsetChange: { viewModel.rescheduleNotifications(offsetMinutes: $0) },
-                onSync: { Task { await viewModel.sync() } },
-                onSignOut: { viewModel.signOut() },
-                onImport: { viewModel.importICSFile() }
-            )
+            // New event overlay — slides up from bottom
+            if viewModel.showNewEvent {
+                NewEventView()
+                    .environmentObject(viewModel)
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .bottom).combined(with: .opacity),
+                        removal:   .move(edge: .bottom).combined(with: .opacity)
+                    ))
+            }
         }
-        .padding(14)
-        .frame(width: 340, height: 420)
-        .background(.ultraThinMaterial)
         .environmentObject(viewModel)
-        .onAppear {
-            if viewModel.auth.isAuthenticated && viewModel.events.isEmpty {
-                Task { await viewModel.sync() }
-            }
-        }
+        .animation(.spring(response: 0.3, dampingFraction: 0.85), value: viewModel.showNewEvent)
     }
 
     // MARK: - Main Content

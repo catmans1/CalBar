@@ -18,6 +18,9 @@ final class CalendarViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var importState: ImportState = .idle
+    @Published var showNewEvent = false
+    @Published var isCreatingEvent = false
+    @Published var createEventError: String?
 
     let auth = AuthManager.shared
     private var refreshTask: Task<Void, Never>?
@@ -108,6 +111,25 @@ final class CalendarViewModel: ObservableObject {
     func openMeeting(_ event: CalendarEvent) {
         guard let link = event.hangoutLink, let url = URL(string: link) else { return }
         NSWorkspace.shared.open(url)
+    }
+
+    // MARK: - Create Event
+
+    func createNewEvent(title: String, start: Date, end: Date) async {
+        isCreatingEvent = true
+        createEventError = nil
+        defer { isCreatingEvent = false }
+        let event = ParsedICSEvent(summary: title, start: start, end: end,
+                                   description: nil, location: nil, isAllDay: false)
+        do {
+            try await GoogleCalendarService.shared.createEvent(event)
+            showNewEvent = false
+            await sync()
+        } catch ICSImportError.insufficientPermissions {
+            createEventError = "Sign out and sign in again to enable event creation"
+        } catch {
+            createEventError = error.localizedDescription
+        }
     }
 
     // MARK: - ICS Import

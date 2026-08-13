@@ -8,6 +8,7 @@ struct FooterView: View {
     let onSync: () -> Void
     let onSignOut: () -> Void
     let onImport: () -> Void
+    let onNewEvent: () -> Void
 
     var body: some View {
         HStack {
@@ -29,6 +30,14 @@ struct FooterView: View {
             }
 
             Spacer()
+
+            Button(action: onNewEvent) {
+                Image(systemName: "plus.circle")
+                    .font(.system(size: 12))
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .help("New event")
 
             Button(action: onImport) {
                 Image(systemName: "arrow.down.doc")
