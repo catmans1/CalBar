@@ -115,14 +115,12 @@ final class CalendarViewModel: ObservableObject {
 
     // MARK: - Create Event
 
-    func createNewEvent(title: String, start: Date, end: Date) async {
+    func createNewEvent(_ request: NewEventRequest) async {
         isCreatingEvent = true
         createEventError = nil
         defer { isCreatingEvent = false }
-        let event = ParsedICSEvent(summary: title, start: start, end: end,
-                                   description: nil, location: nil, isAllDay: false)
         do {
-            try await GoogleCalendarService.shared.createEvent(event)
+            try await GoogleCalendarService.shared.createEvent(request: request)
             showNewEvent = false
             await sync()
         } catch ICSImportError.insufficientPermissions {

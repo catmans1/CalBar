@@ -4,9 +4,17 @@ struct NewEventView: View {
     @EnvironmentObject var viewModel: CalendarViewModel
     @FocusState private var titleFocused: Bool
 
+    // Required fields
     @State private var title = ""
-    @State private var startDate: Date = Self.nextSlot()
+    @State private var selectedDate: Date = Calendar.current.startOfDay(for: Self.nextSlot())
+    @State private var startTime: Date = Self.nextSlot()
     @State private var durationMinutes = 30
+    @State private var isAllDay = false
+
+    // Optional fields
+    @State private var location = ""
+    @State private var notes = ""
+    @State private var addGoogleMeet = false
 
     private let durations: [(label: String, minutes: Int)] = [
         ("15 min", 15), ("30 min", 30), ("45 min", 45),
@@ -17,9 +25,21 @@ struct NewEventView: View {
         VStack(spacing: 0) {
             header
             Divider().opacity(0.3).padding(.vertical, 10)
-            form
-            Spacer()
+
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 0) {
+                    requiredSection
+                    optionalSection
+                    if let error = viewModel.createEventError {
+                        errorBanner(error)
+                            .padding(.top, 8)
+                    }
+                    Spacer(minLength: 8)
+                }
+            }
+
             createButton
+                .padding(.top, 10)
         }
         .padding(14)
         .frame(width: 340, height: 420)
@@ -48,17 +68,14 @@ struct NewEventView: View {
 
             Spacer()
 
-            // Balance spacer
-            Text("Cancel")
-                .font(.system(size: 12))
-                .hidden()
+            Text("Cancel").font(.system(size: 12)).hidden()
         }
     }
 
-    // MARK: - Form
+    // MARK: - Required Section
 
-    private var form: some View {
-        VStack(spacing: 14) {
+    private var requiredSection: some View {
+        VStack(spacing: 11) {
             // Title
             TextField("Event title", text: $title)
                 .textFieldStyle(.plain)
@@ -71,49 +88,116 @@ struct NewEventView: View {
                 .focused($titleFocused)
                 .onSubmit { if canCreate { create() } }
 
-            // When
-            row(icon: "calendar", label: "When") {
-                DatePicker("", selection: $startDate)
+            // All-day toggle
+            formRow(icon: "sun.max", label: "All-day") {
+                Toggle("", isOn: $isAllDay.animation(.easeInOut(duration: 0.18)))
+                    .labelsHidden()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            // Date
+            formRow(icon: "calendar", label: "Date") {
+                DatePicker("", selection: $selectedDate, displayedComponents: .date)
                     .labelsHidden()
                     .datePickerStyle(.compact)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            // Duration
-            row(icon: "clock", label: "Duration") {
-                Picker("", selection: $durationMinutes) {
-                    ForEach(durations, id: \.minutes) { d in
-                        Text(d.label).tag(d.minutes)
+            // Start time — hidden when all-day
+            if !isAllDay {
+                formRow(icon: "clock", label: "Start") {
+                    DatePicker("", selection: $startTime, displayedComponents: .hourAndMinute)
+                        .labelsHidden()
+                        .datePickerStyle(.compact)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                // Duration
+                formRow(icon: "timer", label: "Duration") {
+                    Picker("", selection: $durationMinutes) {
+                        ForEach(durations, id: \.minutes) { d in
+                            Text(d.label).tag(d.minutes)
+                        }
                     }
+                    .pickerStyle(.menu)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .pickerStyle(.menu)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
 
-            // End time preview
-            HStack {
-                Spacer()
-                Text("Ends \(endTimeString)")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.tertiary)
-            }
-
-            // Error banner
-            if let error = viewModel.createEventError {
-                HStack(spacing: 5) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                    Text(error)
-                        .lineLimit(2)
+                // End time preview
+                HStack {
+                    Spacer()
+                    Text("Ends \(endTimeString)")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.tertiary)
                 }
-                .font(.system(size: 11))
-                .foregroundStyle(.red)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(8)
-                .background(
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(Color.red.opacity(0.08))
-                )
+                .padding(.top, -4)
             }
         }
+        .padding(.bottom, 12)
+    }
+
+    // MARK: - Optional Section
+
+    private var optionalSection: some View {
+        VStack(spacing: 11) {
+            // Section divider
+            HStack(spacing: 8) {
+                Rectangle().fill(Color.primary.opacity(0.12)).frame(height: 0.5)
+                Text("OPTIONAL")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(.tertiary)
+                Rectangle().fill(Color.primary.opacity(0.12)).frame(height: 0.5)
+            }
+            .padding(.bottom, 2)
+
+            // Location
+            formRow(icon: "mappin.circle", label: "Location") {
+                TextField("Add location", text: $location)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 12))
+            }
+
+            Divider().opacity(0.2)
+
+            // Notes — multiline
+            formRow(icon: "text.alignleft", label: "Notes", alignment: .top) {
+                TextField("Add notes", text: $notes, axis: .vertical)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 12))
+                    .lineLimit(3)
+            }
+
+            Divider().opacity(0.2)
+
+            // Google Meet
+            formRow(icon: "video", label: "Google Meet") {
+                Toggle("", isOn: $addGoogleMeet)
+                    .labelsHidden()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            if addGoogleMeet {
+                Text("A Meet link will be generated automatically")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.tertiary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.leading, 86)
+                    .padding(.top, -6)
+            }
+        }
+    }
+
+    // MARK: - Error Banner
+
+    private func errorBanner(_ message: String) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: "exclamationmark.triangle.fill")
+            Text(message).lineLimit(2)
+        }
+        .font(.system(size: 11))
+        .foregroundStyle(.red)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(8)
+        .background(RoundedRectangle(cornerRadius: 6).fill(Color.red.opacity(0.08)))
     }
 
     // MARK: - Create Button
@@ -136,41 +220,70 @@ struct NewEventView: View {
         .disabled(!canCreate)
     }
 
-    // MARK: - Helpers
+    // MARK: - Row Builder
 
     @ViewBuilder
-    private func row<Content: View>(icon: String, label: String, @ViewBuilder content: () -> Content) -> some View {
-        HStack(spacing: 8) {
+    private func formRow<Content: View>(
+        icon: String, label: String,
+        alignment: VerticalAlignment = .center,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        HStack(alignment: alignment, spacing: 8) {
             Label(label, systemImage: icon)
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
-                .frame(width: 72, alignment: .leading)
+                .frame(width: 80, alignment: .leading)
+                .lineLimit(1)
             content()
         }
     }
+
+    // MARK: - Computed Properties
 
     private var canCreate: Bool {
         !title.trimmingCharacters(in: .whitespaces).isEmpty && !viewModel.isCreatingEvent
     }
 
-    private var endDate: Date {
-        startDate.addingTimeInterval(TimeInterval(durationMinutes * 60))
+    private var combinedStart: Date {
+        let cal = Calendar.current
+        let comps = cal.dateComponents([.hour, .minute], from: startTime)
+        return cal.date(bySettingHour: comps.hour ?? 0, minute: comps.minute ?? 0,
+                        second: 0, of: selectedDate) ?? selectedDate
+    }
+
+    private var combinedEnd: Date {
+        combinedStart.addingTimeInterval(TimeInterval(durationMinutes * 60))
     }
 
     private var endTimeString: String {
         let f = DateFormatter()
         f.dateFormat = AppSettings.use24HourTime ? "HH:mm" : "h:mm a"
-        return f.string(from: endDate)
+        return f.string(from: combinedEnd)
     }
 
+    // MARK: - Actions
+
     private func create() {
-        Task {
-            await viewModel.createNewEvent(
-                title: title.trimmingCharacters(in: .whitespaces),
-                start: startDate,
-                end: endDate
-            )
+        let cal = Calendar.current
+        let start: Date
+        let end: Date
+
+        if isAllDay {
+            start = cal.startOfDay(for: selectedDate)
+            end   = cal.date(byAdding: .day, value: 1, to: start) ?? start
+        } else {
+            start = combinedStart
+            end   = combinedEnd
         }
+
+        var request = NewEventRequest(summary: title.trimmingCharacters(in: .whitespaces),
+                                      start: start, end: end)
+        request.location      = location
+        request.notes         = notes
+        request.isAllDay      = isAllDay
+        request.addGoogleMeet = addGoogleMeet
+
+        Task { await viewModel.createNewEvent(request) }
     }
 
     private func dismiss() {
@@ -179,12 +292,11 @@ struct NewEventView: View {
         }
     }
 
-    // Round to the next 30-minute slot
     private static func nextSlot() -> Date {
         let now = Date()
         let cal = Calendar.current
         let mins = cal.component(.minute, from: now)
-        let addMins = mins % 30 == 0 ? 30 : (30 - mins % 30)
-        return cal.date(byAdding: .minute, value: addMins, to: now) ?? now
+        let add  = mins % 30 == 0 ? 30 : (30 - mins % 30)
+        return cal.date(byAdding: .minute, value: add, to: now) ?? now
     }
 }
