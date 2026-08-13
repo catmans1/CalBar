@@ -23,7 +23,7 @@ final class AuthManager: ObservableObject {
     }
 
     private var redirectURI: String { "\(redirectScheme):/oauth2redirect" }
-    private let scope = "https://www.googleapis.com/auth/calendar.readonly email profile"
+    private let scope = "https://www.googleapis.com/auth/calendar.events email profile"
     private var codeVerifier = ""
 
     private var clientSecret: String {

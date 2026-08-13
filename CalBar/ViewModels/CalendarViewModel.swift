@@ -3,12 +3,24 @@ import Foundation
 import SwiftUI
 import AppKit
 import AuthenticationServices
+import UniformTypeIdentifiers
+
+enum ImportState: Equatable {
+    case idle
+    case importing(Int, Int)  // current, total
+    case success(Int)
+    case failure(String)
+}
 
 @MainActor
 final class CalendarViewModel: ObservableObject {
     @Published var events: [CalendarEvent] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published var importState: ImportState = .idle
+    @Published var showNewEvent = false
+    @Published var isCreatingEvent = false
+    @Published var createEventError: String?
 
     let auth = AuthManager.shared
     private var refreshTask: Task<Void, Never>?
@@ -99,6 +111,79 @@ final class CalendarViewModel: ObservableObject {
     func openMeeting(_ event: CalendarEvent) {
         guard let link = event.hangoutLink, let url = URL(string: link) else { return }
         NSWorkspace.shared.open(url)
+    }
+
+    // MARK: - Create Event
+
+    func createNewEvent(_ request: NewEventRequest) async {
+        isCreatingEvent = true
+        createEventError = nil
+        defer { isCreatingEvent = false }
+        do {
+            try await GoogleCalendarService.shared.createEvent(request: request)
+            showNewEvent = false
+            await sync()
+        } catch ICSImportError.insufficientPermissions {
+            createEventError = "Sign out and sign in again to enable event creation"
+        } catch {
+            createEventError = error.localizedDescription
+        }
+    }
+
+    // MARK: - ICS Import
+
+    func importICSFile() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [UTType(filenameExtension: "ics") ?? .data]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.message = "Select an iCal (.ics) file"
+        panel.prompt = "Import"
+
+        Task {
+            let response: NSApplication.ModalResponse = await withCheckedContinuation { continuation in
+                panel.begin { continuation.resume(returning: $0) }
+            }
+            guard response == .OK, let url = panel.url else { return }
+
+            guard let data = try? Data(contentsOf: url) else {
+                showImportState(.failure("Could not read file"))
+                return
+            }
+
+            let parsed = ICSParser.parse(data: data)
+            guard !parsed.isEmpty else {
+                showImportState(.failure("No events found in file"))
+                return
+            }
+
+            importState = .importing(0, parsed.count)
+            var imported = 0
+
+            for (i, event) in parsed.enumerated() {
+                do {
+                    try await GoogleCalendarService.shared.createEvent(event)
+                    imported += 1
+                } catch ICSImportError.insufficientPermissions {
+                    showImportState(.failure("Sign out & sign in again to enable import"))
+                    return
+                } catch {
+                    // Skip individual failures and continue
+                }
+                importState = .importing(i + 1, parsed.count)
+            }
+
+            showImportState(.success(imported))
+            if imported > 0 { await sync() }
+        }
+    }
+
+    private func showImportState(_ state: ImportState) {
+        importState = state
+        Task {
+            try? await Task.sleep(nanoseconds: 4_000_000_000)
+            if importState == state { importState = .idle }
+        }
     }
 
     func rescheduleNotifications(offsetMinutes: Int) {
