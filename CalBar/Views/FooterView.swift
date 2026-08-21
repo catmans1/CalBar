@@ -23,7 +23,7 @@ struct FooterView: View {
                     Text(lm.str("time.30m")).tag(30)
                 }
                 .pickerStyle(.menu)
-                .frame(width: 80)
+                .frame(minWidth: 80)
                 .onChange(of: notificationOffset) { _, newValue in
                     onOffsetChange(newValue)
                 }

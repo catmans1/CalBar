@@ -188,11 +188,10 @@ final class CalendarViewModel: ObservableObject {
 
     func rescheduleNotifications(offsetMinutes: Int) {
         guard AppSettings.notificationsEnabled else { return }
-        NotificationManager.shared.scheduleNotifications(for: events, offsetMinutes: offsetMinutes)
-
-        // Second reminder: schedule 1 min before each event
-        if AppSettings.enableSecondReminder {
-            NotificationManager.shared.scheduleNotifications(for: events, offsetMinutes: 1)
+        var offsets = [offsetMinutes]
+        if AppSettings.enableSecondReminder && !offsets.contains(1) {
+            offsets.append(1)
         }
+        NotificationManager.shared.scheduleNotifications(for: events, offsets: offsets)
     }
 }
