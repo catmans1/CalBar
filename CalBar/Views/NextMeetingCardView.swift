@@ -32,16 +32,16 @@ struct NextMeetingCardView: View {
                 }
             }
 
-            if let loc = event.location, event.hangoutLink == nil {
+            if let loc = event.location, !loc.isEmpty, event.meetingLink == nil {
                 Label(loc, systemImage: "mappin.circle")
                     .font(.system(size: 10))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
 
-            if event.hangoutLink != nil {
+            if event.meetingLink != nil {
                 Button(action: onJoin) {
-                    Label(lm.str("join"), systemImage: "video.fill")
+                    Label(lm.str("join"), systemImage: event.meetingPlatform.iconName)
                         .font(.system(size: 12, weight: .semibold))
                         .frame(maxWidth: .infinity)
                 }

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct NewEventView: View {
     @EnvironmentObject var viewModel: CalendarViewModel
+    @EnvironmentObject private var lm: LocalizationManager
     @FocusState private var titleFocused: Bool
 
     // Required fields
@@ -16,10 +17,16 @@ struct NewEventView: View {
     @State private var notes = ""
     @State private var addGoogleMeet = false
 
-    private let durations: [(label: String, minutes: Int)] = [
-        ("15 min", 15), ("30 min", 30), ("45 min", 45),
-        ("1 hour", 60), ("1.5 hours", 90), ("2 hours", 120)
-    ]
+    private var durations: [(label: String, minutes: Int)] {
+        [
+            (lm.str("duration.15m"), 15),
+            (lm.str("duration.30m"), 30),
+            (lm.str("duration.45m"), 45),
+            (lm.str("duration.1h"), 60),
+            (lm.str("duration.1_5h"), 90),
+            (lm.str("duration.2h"), 120)
+        ]
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -55,7 +62,7 @@ struct NewEventView: View {
     private var header: some View {
         HStack {
             Button(action: dismiss) {
-                Text("Cancel")
+                Text(lm.str("newEvent.cancel"))
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
             }
@@ -63,12 +70,12 @@ struct NewEventView: View {
 
             Spacer()
 
-            Text("New Event")
+            Text(lm.str("newEvent.title"))
                 .font(.system(size: 14, weight: .semibold))
 
             Spacer()
 
-            Text("Cancel").font(.system(size: 12)).hidden()
+            Text(lm.str("newEvent.cancel")).font(.system(size: 12)).hidden()
         }
     }
 
@@ -77,7 +84,7 @@ struct NewEventView: View {
     private var requiredSection: some View {
         VStack(spacing: 11) {
             // Title
-            TextField("Event title", text: $title)
+            TextField(lm.str("newEvent.titlePlaceholder"), text: $title)
                 .textFieldStyle(.plain)
                 .font(.system(size: 13))
                 .padding(10)
@@ -89,14 +96,14 @@ struct NewEventView: View {
                 .onSubmit { if canCreate { create() } }
 
             // All-day toggle
-            formRow(icon: "sun.max", label: "All-day") {
+            formRow(icon: "sun.max", label: lm.str("newEvent.allDay")) {
                 Toggle("", isOn: $isAllDay.animation(.easeInOut(duration: 0.18)))
                     .labelsHidden()
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
 
             // Date
-            formRow(icon: "calendar", label: "Date") {
+            formRow(icon: "calendar", label: lm.str("newEvent.date")) {
                 DatePicker("", selection: $selectedDate, displayedComponents: .date)
                     .labelsHidden()
                     .datePickerStyle(.compact)
@@ -105,7 +112,7 @@ struct NewEventView: View {
 
             // Start time — hidden when all-day
             if !isAllDay {
-                formRow(icon: "clock", label: "Start") {
+                formRow(icon: "clock", label: lm.str("newEvent.start")) {
                     DatePicker("", selection: $startTime, displayedComponents: .hourAndMinute)
                         .labelsHidden()
                         .datePickerStyle(.compact)
@@ -113,7 +120,7 @@ struct NewEventView: View {
                 }
 
                 // Duration
-                formRow(icon: "timer", label: "Duration") {
+                formRow(icon: "timer", label: lm.str("newEvent.duration")) {
                     Picker("", selection: $durationMinutes) {
                         ForEach(durations, id: \.minutes) { d in
                             Text(d.label).tag(d.minutes)
@@ -126,7 +133,7 @@ struct NewEventView: View {
                 // End time preview
                 HStack {
                     Spacer()
-                    Text("Ends \(endTimeString)")
+                    Text(lm.strFormatStr("newEvent.endsAt", endTimeString))
                         .font(.system(size: 10))
                         .foregroundStyle(.tertiary)
                 }
@@ -143,7 +150,7 @@ struct NewEventView: View {
             // Section divider
             HStack(spacing: 8) {
                 Rectangle().fill(Color.primary.opacity(0.12)).frame(height: 0.5)
-                Text("OPTIONAL")
+                Text(lm.str("newEvent.optional"))
                     .font(.system(size: 9, weight: .semibold))
                     .foregroundStyle(.tertiary)
                 Rectangle().fill(Color.primary.opacity(0.12)).frame(height: 0.5)
@@ -151,8 +158,8 @@ struct NewEventView: View {
             .padding(.bottom, 2)
 
             // Location
-            formRow(icon: "mappin.circle", label: "Location") {
-                TextField("Add location", text: $location)
+            formRow(icon: "mappin.circle", label: lm.str("newEvent.location")) {
+                TextField(lm.str("newEvent.locationPlaceholder"), text: $location)
                     .textFieldStyle(.plain)
                     .font(.system(size: 12))
             }
@@ -160,8 +167,8 @@ struct NewEventView: View {
             Divider().opacity(0.2)
 
             // Notes — multiline
-            formRow(icon: "text.alignleft", label: "Notes", alignment: .top) {
-                TextField("Add notes", text: $notes, axis: .vertical)
+            formRow(icon: "text.alignleft", label: lm.str("newEvent.notes"), alignment: .top) {
+                TextField(lm.str("newEvent.notesPlaceholder"), text: $notes, axis: .vertical)
                     .textFieldStyle(.plain)
                     .font(.system(size: 12))
                     .lineLimit(3)
@@ -170,13 +177,13 @@ struct NewEventView: View {
             Divider().opacity(0.2)
 
             // Google Meet
-            formRow(icon: "video", label: "Google Meet") {
+            formRow(icon: "video", label: lm.str("newEvent.googleMeet")) {
                 Toggle("", isOn: $addGoogleMeet)
                     .labelsHidden()
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             if addGoogleMeet {
-                Text("A Meet link will be generated automatically")
+                Text(lm.str("newEvent.meetNote"))
                     .font(.system(size: 10))
                     .foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -210,7 +217,7 @@ struct NewEventView: View {
                 } else {
                     Image(systemName: "calendar.badge.plus")
                 }
-                Text(viewModel.isCreatingEvent ? "Creating…" : "Create Event")
+                Text(viewModel.isCreatingEvent ? lm.str("newEvent.creating") : lm.str("newEvent.create"))
                     .font(.system(size: 13, weight: .semibold))
             }
             .frame(maxWidth: .infinity)
@@ -256,8 +263,7 @@ struct NewEventView: View {
     }
 
     private var endTimeString: String {
-        let f = DateFormatter()
-        f.dateFormat = AppSettings.use24HourTime ? "HH:mm" : "h:mm a"
+        let f = AppSettings.use24HourTime ? DateFormatters.time24 : DateFormatters.time12
         return f.string(from: combinedEnd)
     }
 

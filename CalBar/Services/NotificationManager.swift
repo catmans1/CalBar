@@ -24,7 +24,7 @@ final class NotificationManager {
                     ? "Starting now • \(event.timeRangeString)"
                     : "Starts in \(offsetMinutes) min • \(event.timeRangeString)"
                 content.sound = .default
-                if let link = event.hangoutLink {
+                if let link = event.meetingLink {
                     content.userInfo = ["url": link]
                 }
 

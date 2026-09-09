@@ -45,6 +45,33 @@ final class CalendarViewModel: ObservableObject {
         return "calendar.badge.exclamationmark"
     }
 
+    var menuBarText: String? {
+        let mode = AppSettings.menuBarDisplayMode
+        guard mode != .iconOnly, let next = nextMeeting else { return nil }
+
+        let mins = next.minutesUntilStart
+        let timeStr: String
+        if mins == 0 {
+            timeStr = LocalizationManager.shared.str("meeting.now")
+        } else if mins < 60 {
+            timeStr = "\(mins)m"
+        } else {
+            let h = mins / 60
+            let m = mins % 60
+            timeStr = m > 0 ? "\(h)h\(m)m" : "\(h)h"
+        }
+
+        switch mode {
+        case .iconOnly:
+            return nil
+        case .countdown:
+            return timeStr
+        case .titleAndCountdown:
+            let truncatedTitle = next.summary.count > 18 ? "\(next.summary.prefix(16))…" : next.summary
+            return "\(truncatedTitle) (\(timeStr))"
+        }
+    }
+
     init() {
         if auth.isAuthenticated {
             Task {
@@ -86,6 +113,10 @@ final class CalendarViewModel: ObservableObject {
     }
 
     func signIn(contextProvider: ASWebAuthenticationPresentationContextProviding) async {
+        guard AppSettings.hasConfiguredCredentials else {
+            errorMessage = LocalizationManager.shared.str("signin.needCredentials")
+            return
+        }
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
@@ -109,7 +140,7 @@ final class CalendarViewModel: ObservableObject {
     }
 
     func openMeeting(_ event: CalendarEvent) {
-        guard let link = event.hangoutLink, let url = URL(string: link) else { return }
+        guard let link = event.meetingLink, let url = URL(string: link) else { return }
         NSWorkspace.shared.open(url)
     }
 
@@ -124,7 +155,7 @@ final class CalendarViewModel: ObservableObject {
             showNewEvent = false
             await sync()
         } catch ICSImportError.insufficientPermissions {
-            createEventError = "Sign out and sign in again to enable event creation"
+            createEventError = LocalizationManager.shared.str("newEvent.errorAuth")
         } catch {
             createEventError = error.localizedDescription
         }

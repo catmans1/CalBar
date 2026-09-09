@@ -36,7 +36,7 @@ struct EventRowView: View {
                     .foregroundStyle(isPast ? .quaternary : .secondary)
             }
             Spacer()
-            if event.hangoutLink != nil && !isPast {
+            if event.meetingLink != nil && !isPast {
                 Button(lm.str("join"), action: onJoin)
                     .buttonStyle(AccentButtonStyle())
             }
@@ -68,8 +68,11 @@ struct EventRowView: View {
 
     private var subtitle: String {
         var parts = [event.timeRangeString]
-        if event.hangoutLink != nil { parts.append("Google Meet") }
-        else if let loc = event.location { parts.append(loc) }
+        if event.meetingLink != nil {
+            parts.append(event.meetingPlatform.rawValue)
+        } else if let loc = event.location, !loc.isEmpty {
+            parts.append(loc)
+        }
         return parts.joined(separator: " • ")
     }
 }
