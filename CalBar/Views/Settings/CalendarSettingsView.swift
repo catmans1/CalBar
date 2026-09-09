@@ -1,14 +1,41 @@
 import SwiftUI
 
 struct CalendarSettingsView: View {
+    @EnvironmentObject var viewModel: CalendarViewModel
+    @EnvironmentObject private var lm: LocalizationManager
     @State private var calendars: [CalendarListItem] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var selectedIDs: Set<String> = AppSettings.selectedCalendarIDs
-    @EnvironmentObject private var lm: LocalizationManager
 
     var body: some View {
         Form {
+            Section(lm.str("source.dataSource")) {
+                Picker(lm.str("source.dataSource"), selection: Binding(
+                    get: { viewModel.calendarSource },
+                    set: { newSource in
+                        viewModel.setSource(newSource)
+                        Task { await loadCalendars() }
+                    }
+                )) {
+                    ForEach(CalendarSource.allCases) { src in
+                        Text(lm.str(src.labelKey)).tag(src)
+                    }
+                }
+                .pickerStyle(.radioGroup)
+
+                if viewModel.calendarSource == .appleCalendar && !viewModel.isAppleCalendarAuthorized {
+                    Button(lm.str("calendars.grantPermission")) {
+                        Task {
+                            await viewModel.requestAppleCalendarAccess()
+                            await loadCalendars()
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .padding(.top, 4)
+                }
+            }
+
             Section {
                 if isLoading {
                     HStack { Spacer(); ProgressView(); Spacer() }
@@ -16,7 +43,7 @@ struct CalendarSettingsView: View {
                 } else if let error = errorMessage {
                     Text(error).foregroundStyle(.red).font(.caption)
                 } else if calendars.isEmpty {
-                    Text(lm.str("calendars.empty"))
+                    Text(viewModel.calendarSource == .appleCalendar ? lm.str("calendars.permissionDenied") : lm.str("calendars.empty"))
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(calendars) { item in
@@ -65,18 +92,34 @@ struct CalendarSettingsView: View {
     }
 
     private func loadCalendars() async {
-        guard AuthManager.shared.isAuthenticated else { return }
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
-        do {
-            calendars = try await GoogleCalendarService.shared.fetchCalendarList()
+
+        if viewModel.calendarSource == .appleCalendar {
+            if !viewModel.isAppleCalendarAuthorized {
+                calendars = []
+                return
+            }
+            calendars = EventKitCalendarService.shared.fetchCalendarList()
             if selectedIDs.isEmpty, let primary = calendars.first(where: { $0.isPrimary }) {
                 selectedIDs = [primary.id]
                 AppSettings.selectedCalendarIDs = selectedIDs
             }
-        } catch {
-            errorMessage = error.localizedDescription
+        } else {
+            guard AuthManager.shared.isAuthenticated else {
+                calendars = []
+                return
+            }
+            do {
+                calendars = try await GoogleCalendarService.shared.fetchCalendarList()
+                if selectedIDs.isEmpty, let primary = calendars.first(where: { $0.isPrimary }) {
+                    selectedIDs = [primary.id]
+                    AppSettings.selectedCalendarIDs = selectedIDs
+                }
+            } catch {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 }

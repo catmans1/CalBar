@@ -56,6 +56,17 @@ struct DisplaySettingsView: View {
             } header: {
                 Text(lm.str("display.language"))
             }
+
+            Section {
+                Toggle(lm.str("hotkey.enable"), isOn: Binding(
+                    get: { HotkeyManager.shared.isEnabled },
+                    set: { HotkeyManager.shared.isEnabled = $0 }
+                ))
+            } header: {
+                Text(lm.str("hotkey.global"))
+            } footer: {
+                Text(lm.str("hotkey.footer"))
+            }
         }
         .formStyle(.grouped)
         .navigationTitle(lm.str("tab.display"))

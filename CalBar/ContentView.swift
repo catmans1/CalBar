@@ -13,8 +13,12 @@ struct ContentView: View {
                 HeaderView()
                 Divider().opacity(0.3).padding(.bottom, 10)
 
-                if !viewModel.auth.isAuthenticated {
-                    SignInView()
+                if !viewModel.isReady {
+                    if viewModel.calendarSource == .appleCalendar {
+                        AppleCalendarAccessView()
+                    } else {
+                        SignInView()
+                    }
                 } else {
                     mainContent
                         .frame(maxHeight: .infinity)
@@ -36,7 +40,7 @@ struct ContentView: View {
             .frame(width: 340, height: 420)
             .background(.ultraThinMaterial)
             .onAppear {
-                if viewModel.auth.isAuthenticated && viewModel.events.isEmpty {
+                if viewModel.isReady && viewModel.events.isEmpty {
                     Task { await viewModel.sync() }
                 }
             }
@@ -111,6 +115,60 @@ struct ContentView: View {
             }
             .padding(.bottom, 4)
         }
+    }
+}
+
+// MARK: - Apple Calendar Access View
+
+struct AppleCalendarAccessView: View {
+    @EnvironmentObject var viewModel: CalendarViewModel
+    @EnvironmentObject private var lm: LocalizationManager
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Spacer()
+            Image(systemName: "calendar.badge.shield.half.filled")
+                .font(.system(size: 44))
+                .foregroundStyle(.blue)
+
+            Text(lm.str("source.appleCalendar"))
+                .font(.system(size: 14, weight: .semibold))
+
+            Text(lm.str("calendars.footer"))
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 20)
+
+            if let error = viewModel.errorMessage {
+                Text(error)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.red)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 16)
+            }
+
+            Button {
+                Task { await viewModel.requestAppleCalendarAccess() }
+            } label: {
+                Label(lm.str("calendars.grantPermission"), systemImage: "checkmark.circle.fill")
+                    .font(.system(size: 12, weight: .medium))
+            }
+            .buttonStyle(.borderedProminent)
+
+            Button {
+                openWindow(id: "calbar-settings")
+            } label: {
+                Text(lm.str("settings"))
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -228,7 +286,16 @@ struct HeaderView: View {
             Text(lm.str("app.title"))
                 .font(.system(size: 14, weight: .semibold))
             Spacer()
-            if viewModel.auth.isAuthenticated, let email = viewModel.auth.userEmail {
+            if viewModel.calendarSource == .appleCalendar {
+                HStack(spacing: 4) {
+                    Image(systemName: "applelogo")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                    Text("macOS")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+            } else if viewModel.auth.isAuthenticated, let email = viewModel.auth.userEmail {
                 HStack(spacing: 6) {
                     Circle()
                         .fill(Color.blue)

@@ -121,9 +121,17 @@ final class AuthManager: ObservableObject {
             "grant_type":    "refresh_token"
         ]
         if !clientSecret.isEmpty { params["client_secret"] = clientSecret }
-        let response = try await postToken(params)
-        storeTokens(response)
-        return response.accessToken
+        do {
+            let response = try await postToken(params)
+            storeTokens(response)
+            return response.accessToken
+        } catch let AuthError.serverError(msg) where msg.contains("invalid_grant") {
+            // Token was revoked or expired on Google's side -> clean up Keychain
+            signOut()
+            throw AuthError.notAuthenticated
+        } catch {
+            throw error
+        }
     }
 
     private func postToken(_ params: [String: String]) async throws -> TokenResponse {
@@ -131,7 +139,7 @@ final class AuthManager: ObservableObject {
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         request.httpBody = params
-            .map { "\($0.key)=\($0.value.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!)" }
+            .map { "\($0.key.formURLEncoded())=\($0.value.formURLEncoded())" }
             .joined(separator: "&")
             .data(using: .utf8)
         let (data, _) = try await URLSession.shared.data(for: request)
@@ -219,6 +227,14 @@ private struct GoogleErrorResponse: Decodable {
     enum CodingKeys: String, CodingKey {
         case error
         case errorDescription = "error_description"
+    }
+}
+
+private extension String {
+    func formURLEncoded() -> String {
+        var allowed = CharacterSet.alphanumerics
+        allowed.insert(charactersIn: "-._~")
+        return addingPercentEncoding(withAllowedCharacters: allowed) ?? self
     }
 }
 

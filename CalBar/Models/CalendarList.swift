@@ -13,10 +13,30 @@ struct CalendarListItem: Identifiable, Codable {
     let backgroundColor: String?
     let primary: Bool?
     let selected: Bool?
+    var customHex: String?
+
+    init(
+        id: String,
+        summary: String,
+        primary: Bool? = nil,
+        backgroundColor: String? = nil,
+        selected: Bool? = true,
+        customHex: String? = nil
+    ) {
+        self.id = id
+        self.summary = summary
+        self.primary = primary
+        self.backgroundColor = backgroundColor
+        self.selected = selected
+        self.customHex = customHex
+    }
 
     var displayName: String { summary }
     var isPrimary: Bool { primary == true }
-    var color: Color { Color(hex: backgroundColor ?? "#4285F4") ?? .blue }
+    var color: Color {
+        if let customHex, let c = Color(hex: customHex) { return c }
+        return Color(hex: backgroundColor ?? "#4285F4") ?? .blue
+    }
 }
 
 // MARK: - Color Hex Extension

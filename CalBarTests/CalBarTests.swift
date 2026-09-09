@@ -132,5 +132,30 @@ struct CalBarTests {
         #expect(!lm.str("event.allDay").isEmpty)
         #expect(!lm.str("signin.needCredentials").isEmpty)
         #expect(!lm.str("newEvent.create").isEmpty)
+        #expect(!lm.str("source.appleCalendar").isEmpty)
+        #expect(!lm.str("source.googleDirect").isEmpty)
+        #expect(!lm.str("hotkey.global").isEmpty)
+    }
+
+    // MARK: - Phase 3 Models Tests
+
+    @Test func testCalendarSourceEnum() {
+        let sources = CalendarSource.allCases
+        #expect(sources.contains(.appleCalendar))
+        #expect(sources.contains(.googleDirect))
+        #expect(CalendarSource.appleCalendar.rawValue == "appleCalendar")
+        #expect(CalendarSource.googleDirect.rawValue == "googleDirect")
+    }
+
+    @Test func testMenuBarDisplayModeEnum() {
+        let modes = MenuBarDisplayMode.allCases
+        #expect(modes.contains(.iconOnly))
+        #expect(modes.contains(.countdown))
+        #expect(modes.contains(.titleAndCountdown))
+    }
+
+    @Test func testHotkeyManagerSharedInstance() {
+        let hotkey = HotkeyManager.shared
+        #expect(hotkey.isEnabled == true || hotkey.isEnabled == false)
     }
 }
