@@ -11,7 +11,12 @@ struct CalBarApp: App {
                 .environmentObject(viewModel)
                 .environmentObject(lm)
         } label: {
-            Image(systemName: viewModel.menuBarIconName)
+            HStack(spacing: 4) {
+                Image(systemName: viewModel.menuBarIconName)
+                if let text = viewModel.menuBarText {
+                    Text(text)
+                }
+            }
         }
         .menuBarExtraStyle(.window)
 

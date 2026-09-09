@@ -4,6 +4,7 @@ struct DisplaySettingsView: View {
     @AppStorage(AppSettings.Keys.use24HourTime)          private var use24Hour: Bool = true
     @AppStorage(AppSettings.Keys.maxEventsToShow)        private var maxEvents: Int = 5
     @AppStorage(AppSettings.Keys.showDynamicMenuBarIcon) private var dynamicIcon: Bool = true
+    @AppStorage(AppSettings.Keys.menuBarDisplayMode)      private var menuBarMode: String = MenuBarDisplayMode.iconOnly.rawValue
     @EnvironmentObject private var lm: LocalizationManager
 
     var body: some View {
@@ -27,6 +28,13 @@ struct DisplaySettingsView: View {
             }
 
             Section {
+                Picker(lm.str("menuBar.displayMode"), selection: $menuBarMode) {
+                    ForEach(MenuBarDisplayMode.allCases) { mode in
+                        Text(lm.str(mode.labelKey)).tag(mode.rawValue)
+                    }
+                }
+                .pickerStyle(.menu)
+
                 Toggle(lm.str("display.dynamicIcon"), isOn: $dynamicIcon)
             } header: {
                 Text("Menu Bar")

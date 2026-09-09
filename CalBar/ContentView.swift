@@ -253,6 +253,7 @@ struct HeaderView: View {
 struct SignInView: View {
     @EnvironmentObject var viewModel: CalendarViewModel
     @EnvironmentObject private var lm: LocalizationManager
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         VStack(spacing: 16) {
@@ -264,17 +265,38 @@ struct SignInView: View {
                 .font(.system(size: 13))
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-            if let error = viewModel.errorMessage {
-                Text(error)
-                    .font(.system(size: 11))
-                    .foregroundStyle(.red)
-                    .multilineTextAlignment(.center)
+
+            if !AppSettings.hasConfiguredCredentials {
+                VStack(spacing: 8) {
+                    Text(lm.str("signin.needCredentials"))
+                        .font(.system(size: 11))
+                        .foregroundStyle(.orange)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 16)
+
+                    Button {
+                        openWindow(id: "calbar-settings")
+                    } label: {
+                        Label(lm.str("signin.openSettings"), systemImage: "gearshape")
+                            .font(.system(size: 12))
+                    }
+                    .buttonStyle(.bordered)
+                }
+            } else {
+                if let error = viewModel.errorMessage {
+                    Text(error)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.red)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 16)
+                }
+                Button(lm.str("signin.button")) {
+                    Task { await viewModel.signIn(contextProvider: WindowContextProvider.shared) }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(viewModel.isLoading)
             }
-            Button(lm.str("signin.button")) {
-                Task { await viewModel.signIn(contextProvider: WindowContextProvider.shared) }
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(viewModel.isLoading)
+
             if viewModel.isLoading { ProgressView() }
             Spacer()
         }

@@ -7,9 +7,12 @@ struct AboutSettingsView: View {
         Form {
             Section {
                 VStack(spacing: 12) {
-                    Image(systemName: "calendar.circle.fill")
-                        .font(.system(size: 56))
-                        .foregroundStyle(.blue)
+                    Image(nsImage: NSApp.applicationIconImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 72, height: 72)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .shadow(color: .black.opacity(0.15), radius: 6, y: 3)
                     Text("CalBar")
                         .font(.largeTitle).bold()
                     Text(lm.str("about.subtitle"))

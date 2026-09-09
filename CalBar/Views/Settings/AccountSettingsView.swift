@@ -18,7 +18,7 @@ struct AccountSettingsView: View {
                     if viewModel.isLoading {
                         HStack(spacing: 8) {
                             ProgressView().scaleEffect(0.8)
-                            Text("Đang đăng nhập...")
+                            Text(lm.str("signin.signingIn"))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
