@@ -4,6 +4,10 @@
 <dict>
 	<key>LSUIElement</key>
 	<true/>
+	<key>NSCalendarsUsageDescription</key>
+	<string>CalBar needs access to your calendars to display your daily schedule and upcoming meetings in the menu bar.</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>CalBar needs full access to your calendars to display your daily schedule and create events from the menu bar.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

@@ -4,6 +4,7 @@ import SwiftUI
 struct CalBarApp: App {
     @StateObject private var viewModel = CalendarViewModel()
     @StateObject private var lm = LocalizationManager.shared
+    @StateObject private var hotkeyManager = HotkeyManager.shared
 
     var body: some Scene {
         MenuBarExtra {

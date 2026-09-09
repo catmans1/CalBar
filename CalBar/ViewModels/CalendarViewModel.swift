@@ -21,9 +21,21 @@ final class CalendarViewModel: ObservableObject {
     @Published var showNewEvent = false
     @Published var isCreatingEvent = false
     @Published var createEventError: String?
+    @Published var isAppleCalendarAuthorized: Bool = EventKitCalendarService.shared.isAuthorized
+    @Published var calendarSource: CalendarSource = AppSettings.calendarSource
 
     let auth = AuthManager.shared
     private var refreshTask: Task<Void, Never>?
+    private var cancellables = Set<AnyCancellable>()
+
+    var isReady: Bool {
+        switch calendarSource {
+        case .appleCalendar:
+            return isAppleCalendarAuthorized
+        case .googleDirect:
+            return auth.isAuthenticated
+        }
+    }
 
     var nextMeeting: CalendarEvent? {
         events.first { $0.end > Date() && !$0.isAllDay }
@@ -73,21 +85,66 @@ final class CalendarViewModel: ObservableObject {
     }
 
     init() {
-        if auth.isAuthenticated {
-            Task {
+        Task {
+            if isReady {
                 await sync()
                 startAutoRefresh()
             }
         }
+
+        NotificationCenter.default.publisher(for: .toggleCalBarPopover)
+            .receive(on: RunLoop.main)
+            .sink { _ in
+                // Handled by menu bar activation
+            }
+            .store(in: &cancellables)
+    }
+
+    func setSource(_ source: CalendarSource) {
+        calendarSource = source
+        AppSettings.calendarSource = source
+        events = []
+        errorMessage = nil
+        Task {
+            if source == .appleCalendar {
+                isAppleCalendarAuthorized = EventKitCalendarService.shared.isAuthorized
+                if isAppleCalendarAuthorized {
+                    await sync()
+                }
+            } else {
+                if auth.isAuthenticated {
+                    await sync()
+                }
+            }
+        }
+    }
+
+    func requestAppleCalendarAccess() async {
+        isLoading = true
+        defer { isLoading = false }
+        let granted = await EventKitCalendarService.shared.requestAccess()
+        isAppleCalendarAuthorized = granted
+        if granted {
+            _ = await NotificationManager.shared.requestAuthorization()
+            await sync()
+            startAutoRefresh()
+        } else {
+            errorMessage = LocalizationManager.shared.str("calendars.permissionDenied")
+        }
     }
 
     func sync() async {
-        guard auth.isAuthenticated else { return }
+        guard isReady else { return }
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
         do {
-            events = try await GoogleCalendarService.shared.fetchTodayEvents()
+            switch calendarSource {
+            case .appleCalendar:
+                events = EventKitCalendarService.shared.fetchTodayEvents()
+            case .googleDirect:
+                events = try await GoogleCalendarService.shared.fetchTodayEvents()
+            }
             rescheduleNotifications(offsetMinutes: AppSettings.notificationOffset)
         } catch {
             errorMessage = error.localizedDescription
@@ -151,7 +208,12 @@ final class CalendarViewModel: ObservableObject {
         createEventError = nil
         defer { isCreatingEvent = false }
         do {
-            try await GoogleCalendarService.shared.createEvent(request: request)
+            switch calendarSource {
+            case .appleCalendar:
+                try EventKitCalendarService.shared.createEvent(request: request)
+            case .googleDirect:
+                try await GoogleCalendarService.shared.createEvent(request: request)
+            }
             showNewEvent = false
             await sync()
         } catch ICSImportError.insufficientPermissions {

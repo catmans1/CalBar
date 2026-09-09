@@ -1,5 +1,18 @@
 import Foundation
 
+enum CalendarSource: String, CaseIterable, Identifiable {
+    case appleCalendar = "appleCalendar"
+    case googleDirect = "googleDirect"
+
+    var id: String { rawValue }
+    var labelKey: String {
+        switch self {
+        case .appleCalendar: return "source.appleCalendar"
+        case .googleDirect:  return "source.googleDirect"
+        }
+    }
+}
+
 enum MenuBarDisplayMode: String, CaseIterable, Identifiable {
     case iconOnly = "iconOnly"
     case countdown = "countdown"
@@ -19,6 +32,19 @@ enum MenuBarDisplayMode: String, CaseIterable, Identifiable {
 /// Views bind directly with @AppStorage using the same keys.
 struct AppSettings {
     private init() {}
+
+    static var calendarSource: CalendarSource {
+        get {
+            guard let raw = UserDefaults.standard.string(forKey: Keys.calendarSource),
+                  let src = CalendarSource(rawValue: raw) else {
+                return .appleCalendar
+            }
+            return src
+        }
+        set {
+            UserDefaults.standard.set(newValue.rawValue, forKey: Keys.calendarSource)
+        }
+    }
 
     static var notificationOffset: Int {
         let v = UserDefaults.standard.integer(forKey: Keys.notificationOffset)
@@ -46,6 +72,9 @@ struct AppSettings {
     }
     static var showDynamicMenuBarIcon: Bool {
         UserDefaults.standard.object(forKey: Keys.showDynamicMenuBarIcon) as? Bool ?? true
+    }
+    static var enableGlobalHotkey: Bool {
+        UserDefaults.standard.object(forKey: Keys.enableGlobalHotkey) as? Bool ?? true
     }
     static var menuBarDisplayMode: MenuBarDisplayMode {
         guard let raw = UserDefaults.standard.string(forKey: Keys.menuBarDisplayMode),
@@ -78,6 +107,8 @@ struct AppSettings {
     }
 
     enum Keys {
+        static let calendarSource          = "calendarDataSource"
+        static let enableGlobalHotkey      = "enableGlobalHotkey"
         static let notificationOffset      = "notificationOffsetMinutes"
         static let notificationsEnabled    = "notificationsEnabled"
         static let enableSecondReminder    = "enableSecondReminder"
